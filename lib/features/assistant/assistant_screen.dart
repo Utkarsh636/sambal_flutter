@@ -141,15 +141,18 @@ class _AssistantScreenState extends State<AssistantScreen> {
                     ),
                   ),
                   const SizedBox(width: 8),
-                  FilledButton(
-                    style: FilledButton.styleFrom(
-                      minimumSize: const Size(54, 54),
-                      padding: EdgeInsets.zero,
+                  Semantics(
+                    label: hindi ? 'भेजें' : 'Send message',
+                    child: FilledButton(
+                      style: FilledButton.styleFrom(
+                        minimumSize: const Size(54, 54),
+                        padding: EdgeInsets.zero,
+                      ),
+                      onPressed: typing
+                          ? null
+                          : () => ask(textController.text, hindi),
+                      child: const Icon(Icons.send),
                     ),
-                    onPressed: typing
-                        ? null
-                        : () => ask(textController.text, hindi),
-                    child: const Icon(Icons.send),
                   ),
                 ],
               ),

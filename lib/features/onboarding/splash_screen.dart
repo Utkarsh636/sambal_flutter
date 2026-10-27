@@ -40,7 +40,13 @@ class _SplashScreenState extends State<SplashScreen>
         : const OnboardingScreen();
 
     Navigator.of(context).pushReplacement(
-      MaterialPageRoute(builder: (_) => destination),
+      PageRouteBuilder(
+        pageBuilder: (_, __, ___) => destination,
+        transitionDuration: const Duration(milliseconds: 600),
+        transitionsBuilder: (_, animation, __, child) {
+          return FadeTransition(opacity: animation, child: child);
+        },
+      ),
     );
   }
 

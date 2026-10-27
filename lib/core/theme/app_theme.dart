@@ -17,6 +17,12 @@ class AppTheme {
   static const softWhite = Color(0xFFF2F4F8);
   static const mutedSlate = Color(0xFFAEB7C4);
 
+  static const successLight = Color(0xFF2E7D32);
+  static const successDark = Color(0xFF66BB6A);
+
+  static Color success(Brightness brightness) =>
+      brightness == Brightness.dark ? successDark : successLight;
+
   static final lightTheme = ThemeData(
     useMaterial3: true,
     colorScheme: const ColorScheme.light(
@@ -127,6 +133,12 @@ class AppTheme {
         borderRadius: BorderRadius.circular(14),
       ),
       behavior: SnackBarBehavior.floating,
+    ),
+    pageTransitionsTheme: const PageTransitionsTheme(
+      builders: {
+        TargetPlatform.android: FadeUpwardsPageTransitionsBuilder(),
+        TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
+      },
     ),
     textTheme: const TextTheme(
       headlineSmall: TextStyle(
@@ -257,6 +269,12 @@ class AppTheme {
         borderRadius: BorderRadius.circular(14),
       ),
       behavior: SnackBarBehavior.floating,
+    ),
+    pageTransitionsTheme: const PageTransitionsTheme(
+      builders: {
+        TargetPlatform.android: FadeUpwardsPageTransitionsBuilder(),
+        TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
+      },
     ),
     textTheme: const TextTheme(
       headlineSmall: TextStyle(

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
 import '../../core/config/api_config.dart';
+import '../../core/storage/local_storage.dart';
 import '../case/case_controller.dart';
 import '../shell/shell_screen.dart';
 
@@ -52,6 +53,19 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     super.dispose();
   }
 
+  List<_StateOption> _parseStates(String body) {
+    final json = jsonDecode(body) as Map<String, dynamic>;
+    final rawStates = json["states"] as List? ?? const [];
+    return rawStates
+        .whereType<Map>()
+        .map((item) => _StateOption(
+              id: item["id"]?.toString() ?? "",
+              name: item["name"]?.toString() ?? "",
+            ))
+        .where((s) => s.id.isNotEmpty && s.name.isNotEmpty)
+        .toList();
+  }
+
   Future<void> _loadStates() async {
     try {
       final uri = Uri.http(ApiConfig.host, "/certificate/coverage");
@@ -59,25 +73,25 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
       if (response.statusCode != 200) throw Exception("Failed");
 
-      final body = jsonDecode(response.body) as Map<String, dynamic>;
-      final rawStates = body["states"] as List? ?? const [];
-
-      final states = rawStates
-          .whereType<Map>()
-          .map((item) => _StateOption(
-                id: item["id"]?.toString() ?? "",
-                name: item["name"]?.toString() ?? "",
-              ))
-          .where((s) => s.id.isNotEmpty && s.name.isNotEmpty)
-          .toList();
+      LocalStorage.cacheApiResponse('coverage', response.body);
 
       if (!mounted) return;
       setState(() {
-        _states = states;
+        _states = _parseStates(response.body);
         _loadingStates = false;
       });
     } catch (_) {
       if (!mounted) return;
+
+      final cached = LocalStorage.getCachedResponse('coverage');
+      if (cached != null) {
+        setState(() {
+          _states = _parseStates(cached);
+          _loadingStates = false;
+        });
+        return;
+      }
+
       setState(() {
         _states = const [
           _StateOption(id: "uttar-pradesh", name: "Uttar Pradesh"),
@@ -91,6 +105,18 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     }
   }
 
+  List<_DistrictOption> _parseDistricts(String body) {
+    final json = jsonDecode(body) as Map<String, dynamic>;
+    final rawDistricts = json["districts"] as List? ?? const [];
+    return rawDistricts
+        .whereType<Map>()
+        .map((item) => _DistrictOption(
+              name: item["name"]?.toString() ?? "",
+            ))
+        .where((d) => d.name.isNotEmpty)
+        .toList();
+  }
+
   Future<void> _loadDistricts(String state) async {
     setState(() {
       _districts = [];
@@ -98,6 +124,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       _districtError = false;
       district = '';
     });
+
+    final cacheKey = 'districts_$state';
 
     try {
       final uri = Uri.http(
@@ -109,24 +137,25 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
       if (response.statusCode != 200) throw Exception("Failed");
 
-      final body = jsonDecode(response.body) as Map<String, dynamic>;
-      final rawDistricts = body["districts"] as List? ?? const [];
-
-      final districts = rawDistricts
-          .whereType<Map>()
-          .map((item) => _DistrictOption(
-                name: item["name"]?.toString() ?? "",
-              ))
-          .where((d) => d.name.isNotEmpty)
-          .toList();
+      LocalStorage.cacheApiResponse(cacheKey, response.body);
 
       if (!mounted) return;
       setState(() {
-        _districts = districts;
+        _districts = _parseDistricts(response.body);
         _loadingDistricts = false;
       });
     } catch (_) {
       if (!mounted) return;
+
+      final cached = LocalStorage.getCachedResponse(cacheKey);
+      if (cached != null) {
+        setState(() {
+          _districts = _parseDistricts(cached);
+          _loadingDistricts = false;
+        });
+        return;
+      }
+
       setState(() {
         _loadingDistricts = false;
         _districtError = true;

@@ -53,6 +53,18 @@ class LocalStorage {
     );
   }
 
+  static void cacheApiResponse(String key, String jsonBody) {
+    _prefs.setString('cache_$key', jsonBody);
+    _prefs.setInt('cache_ts_$key', DateTime.now().millisecondsSinceEpoch);
+  }
+
+  static String? getCachedResponse(String key) => _prefs.getString('cache_$key');
+
+  static DateTime? getCacheTime(String key) {
+    final ms = _prefs.getInt('cache_ts_$key');
+    return ms != null ? DateTime.fromMillisecondsSinceEpoch(ms) : null;
+  }
+
   static Future<void> clearAll() async {
     await _prefs.clear();
   }

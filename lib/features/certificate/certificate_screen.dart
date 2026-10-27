@@ -5,6 +5,7 @@ import 'package:http/http.dart' as http;
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/config/api_config.dart';
+import '../../core/storage/local_storage.dart';
 import '../case/case_controller.dart';
 import '../case/location_setup_screen.dart';
 
@@ -20,6 +21,7 @@ class _CertificateScreenState extends State<CertificateScreen> {
   int _step = 0;
   bool _loaded = false;
   bool _isLoading = true;
+  bool _offline = false;
   String? _error;
   _GuideInfo? _guide;
 
@@ -65,6 +67,8 @@ class _CertificateScreenState extends State<CertificateScreen> {
       },
     );
 
+    final cacheKey = 'guide_${caseData.state}_${caseData.district}_${caseData.circumstance}';
+
     try {
       final result = await http.get(uri).timeout(const Duration(seconds: 10));
 
@@ -72,16 +76,29 @@ class _CertificateScreenState extends State<CertificateScreen> {
         throw Exception('Guide service unavailable');
       }
 
+      LocalStorage.cacheApiResponse(cacheKey, result.body);
       final json = jsonDecode(result.body) as Map<String, dynamic>;
 
       if (!mounted) return;
 
       setState(() {
         _guide = _GuideInfo.fromJson(json);
+        _offline = false;
         _isLoading = false;
       });
     } catch (_) {
       if (!mounted) return;
+
+      final cached = LocalStorage.getCachedResponse(cacheKey);
+      if (cached != null) {
+        final json = jsonDecode(cached) as Map<String, dynamic>;
+        setState(() {
+          _guide = _GuideInfo.fromJson(json);
+          _offline = true;
+          _isLoading = false;
+        });
+        return;
+      }
 
       setState(() {
         _isLoading = false;
@@ -129,10 +146,13 @@ class _CertificateScreenState extends State<CertificateScreen> {
             padding: const EdgeInsets.fromLTRB(20, 12, 20, 8),
             child: Column(
               children: [
-                LinearProgressIndicator(
-                  value: (_step + 1) / 5,
-                  minHeight: 7,
-                  borderRadius: BorderRadius.circular(20),
+                Semantics(
+                  label: 'Step ${_step + 1} of 5',
+                  child: LinearProgressIndicator(
+                    value: (_step + 1) / 5,
+                    minHeight: 7,
+                    borderRadius: BorderRadius.circular(20),
+                  ),
                 ),
                 const SizedBox(height: 12),
                 Row(
@@ -152,6 +172,23 @@ class _CertificateScreenState extends State<CertificateScreen> {
               ],
             ),
           ),
+          if (_offline)
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 16),
+              color: colors.secondaryContainer,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.cloud_off_rounded, size: 16, color: colors.onSecondaryContainer),
+                  const SizedBox(width: 8),
+                  Text(
+                    _text('ऑफ़लाइन — कैश्ड डेटा दिखा रहे हैं', 'Offline — showing cached data'),
+                    style: TextStyle(fontSize: 12, color: colors.onSecondaryContainer),
+                  ),
+                ],
+              ),
+            ),
           Expanded(
             child: _isLoading
                 ? const Center(child: CircularProgressIndicator())

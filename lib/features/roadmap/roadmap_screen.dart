@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+
+import '../../core/theme/app_theme.dart';
 import '../case/case_controller.dart';
 
 enum StepMode { online, partial, office }
@@ -124,7 +126,10 @@ class _RoadmapScreenState extends State<RoadmapScreen> {
             ),
           ),
           const SizedBox(height: 10),
-          LinearProgressIndicator(value: doneIds.length / steps.length),
+          Semantics(
+            label: '${doneIds.length} of ${steps.length} steps complete',
+            child: LinearProgressIndicator(value: doneIds.length / steps.length),
+          ),
           const SizedBox(height: 16),
 
           if (!certificateReceived)
@@ -237,7 +242,7 @@ class _RoadmapScreenState extends State<RoadmapScreen> {
     final statusColor = locked
         ? colors.outline
         : complete
-            ? const Color(0xFF2E7D32)
+            ? AppTheme.success(Theme.of(context).brightness)
             : colors.primary;
 
     return Card(

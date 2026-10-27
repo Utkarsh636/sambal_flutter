@@ -23,6 +23,7 @@ class HomeScreen extends StatelessWidget {
         actions: [
           IconButton(
             icon: const Icon(Icons.language),
+            tooltip: hindi ? 'Switch to English' : 'हिन्दी में बदलें',
             onPressed: controller.toggleLanguage,
           ),
           const ThemeToggleButton(),

@@ -168,6 +168,7 @@ class _DocumentsScreenState extends State<DocumentsScreen> {
                 subtitle: Text(t('डेमो दस्तावेज़', 'Demo document')),
                 trailing: IconButton(
                   icon: const Icon(Icons.delete_outline),
+                  tooltip: t('दस्तावेज़ हटाएँ', 'Delete document'),
                   onPressed: () {
                     setState(() => currentDocuments.remove(document));
                     ScaffoldMessenger.of(context).showSnackBar(
