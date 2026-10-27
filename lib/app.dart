@@ -17,7 +17,7 @@ class _SambalAppState extends State<SambalApp> {
   @override
   void initState() {
     super.initState();
-    _sambalController = SambalController();
+    _sambalController = SambalController()..loadFromStorage();
   }
 
   @override

@@ -1,5 +1,7 @@
 import 'package:flutter/widgets.dart';
 
+import '../../core/storage/local_storage.dart';
+
 class CaseData {
   final String relation;
   final bool onBehalf;
@@ -25,18 +27,28 @@ class SambalController extends ChangeNotifier {
   bool isDarkMode = false;
   CaseData data = CaseData();
 
+  void loadFromStorage() {
+    isHindi = LocalStorage.isHindi;
+    isDarkMode = LocalStorage.isDarkMode;
+    final saved = LocalStorage.loadCaseData();
+    if (saved != null) data = saved;
+  }
+
   void toggleLanguage() {
     isHindi = !isHindi;
+    LocalStorage.isHindi = isHindi;
     notifyListeners();
   }
 
   void setLanguage(bool hindi) {
     isHindi = hindi;
+    LocalStorage.isHindi = isHindi;
     notifyListeners();
   }
 
   void toggleTheme() {
     isDarkMode = !isDarkMode;
+    LocalStorage.isDarkMode = isDarkMode;
     notifyListeners();
   }
 
@@ -58,6 +70,16 @@ class SambalController extends ChangeNotifier {
       circumstance: circumstance,
       rites: rites,
     );
+    LocalStorage.saveCaseData(data);
+    LocalStorage.hasCompletedOnboarding = true;
+    notifyListeners();
+  }
+
+  Future<void> clearAllData() async {
+    await LocalStorage.clearAll();
+    isHindi = true;
+    isDarkMode = false;
+    data = CaseData();
     notifyListeners();
   }
 }

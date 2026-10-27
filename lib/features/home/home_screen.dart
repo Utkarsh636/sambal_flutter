@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
-import '../assistant/assistant_screen.dart';
+
 import '../case/case_controller.dart';
-import '../certificate/certificate_screen.dart';
 import '../common/theme_toggle.dart';
-import '../documents/documents_screen.dart';
 import '../roadmap/roadmap_screen.dart';
+import '../settings/privacy_screen.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -17,12 +16,6 @@ class HomeScreen extends StatelessWidget {
     final days = DateTime.now().difference(data.deathDate).inDays;
 
     String t(String hi, String en) => hindi ? hi : en;
-
-    void openCertificate() {
-      Navigator.of(context).push(
-        MaterialPageRoute(builder: (_) => const CertificateScreen()),
-      );
-    }
 
     return Scaffold(
       appBar: AppBar(
@@ -70,16 +63,15 @@ class HomeScreen extends StatelessWidget {
                             'Do not worry; we will guide the next step.',
                           ),
                   ),
-                  const SizedBox(height: 16),
-                  FilledButton(
-                    onPressed: openCertificate,
-                    child: Text(
-                      t(
-                        'मृत्यु प्रमाणपत्र शुरू करें',
-                        'Start death certificate',
+                  const SizedBox(height: 8),
+                  if (data.state.isNotEmpty)
+                    Text(
+                      '${data.state} / ${data.district}',
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        fontSize: 13,
                       ),
                     ),
-                  ),
                 ],
               ),
             ),
@@ -102,29 +94,15 @@ class HomeScreen extends StatelessWidget {
             },
           ),
           ListTile(
-            leading: const Icon(Icons.chat_bubble_outline),
-            title: Text(t('सहायक', 'Assistant')),
-            subtitle: Text(t('सवाल पूछें', 'Ask a question')),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => const AssistantScreen()),
-              );
-            },
-          ),
-          ListTile(
-            leading: const Icon(Icons.folder_outlined),
-            title: Text(t('दस्तावेज़', 'Documents')),
+            leading: const Icon(Icons.shield_outlined),
+            title: Text(t('गोपनीयता और डेटा', 'Privacy & Data')),
             subtitle: Text(
-              t(
-                'ज़रूरी कागज़ एक जगह रखें',
-                'Keep important papers in one place',
-              ),
+              t('अपना डेटा देखें या मिटाएँ', 'View or delete your data'),
             ),
             trailing: const Icon(Icons.chevron_right),
             onTap: () {
               Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => const DocumentsScreen()),
+                MaterialPageRoute(builder: (_) => const PrivacyScreen()),
               );
             },
           ),

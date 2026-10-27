@@ -2,7 +2,9 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
+import '../../core/storage/local_storage.dart';
 import '../../core/theme/app_theme.dart';
+import '../shell/shell_screen.dart';
 import 'onboarding_screen.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -25,18 +27,20 @@ class _SplashScreenState extends State<SplashScreen>
       duration: const Duration(milliseconds: 3200),
     )..repeat();
 
-    _openOnboarding();
+    _navigate();
   }
 
-  Future<void> _openOnboarding() async {
+  Future<void> _navigate() async {
     await Future<void>.delayed(const Duration(milliseconds: 3800));
 
     if (!mounted) return;
 
+    final destination = LocalStorage.hasCompletedOnboarding
+        ? const ShellScreen()
+        : const OnboardingScreen();
+
     Navigator.of(context).pushReplacement(
-      MaterialPageRoute(
-        builder: (_) => const OnboardingScreen(),
-      ),
+      MaterialPageRoute(builder: (_) => destination),
     );
   }
 
@@ -152,7 +156,6 @@ class _FamilyTreePainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     final cx = size.width / 2;
 
-    // Palette
     final trunkColor = isDark
         ? AppTheme.ceruleanBlue.withValues(alpha: 0.5)
         : AppTheme.deepBurgundy.withValues(alpha: 0.3);
@@ -171,7 +174,6 @@ class _FamilyTreePainter extends CustomPainter {
         ? AppTheme.ceruleanBlue.withValues(alpha: 0.2)
         : AppTheme.deepBurgundy.withValues(alpha: 0.14);
 
-    // Trunk — a gentle curved line rising from ground
     final trunkPaint = Paint()
       ..color = trunkColor
       ..style = PaintingStyle.stroke
@@ -184,44 +186,37 @@ class _FamilyTreePainter extends CustomPainter {
 
     canvas.drawPath(trunk, trunkPaint);
 
-    // Branches spreading out
     final branchPaint = Paint()
       ..color = branchColor
       ..style = PaintingStyle.stroke
       ..strokeWidth = 3.5
       ..strokeCap = StrokeCap.round;
 
-    // Left branch
     final leftBranch = Path()
       ..moveTo(cx, size.height * 0.42)
       ..quadraticBezierTo(cx - 50, size.height * 0.32, cx - 75, size.height * 0.22);
     canvas.drawPath(leftBranch, branchPaint);
 
-    // Right branch
     final rightBranch = Path()
       ..moveTo(cx, size.height * 0.38)
       ..quadraticBezierTo(cx + 50, size.height * 0.28, cx + 78, size.height * 0.18);
     canvas.drawPath(rightBranch, branchPaint);
 
-    // Upper-left branch
     final upperLeft = Path()
       ..moveTo(cx - 30, size.height * 0.35)
       ..quadraticBezierTo(cx - 55, size.height * 0.22, cx - 40, size.height * 0.12);
     canvas.drawPath(upperLeft, branchPaint);
 
-    // Upper-right branch
     final upperRight = Path()
       ..moveTo(cx + 25, size.height * 0.33)
       ..quadraticBezierTo(cx + 48, size.height * 0.18, cx + 30, size.height * 0.08);
     canvas.drawPath(upperRight, branchPaint);
 
-    // Standing family members (circles at branch ends)
     _drawPerson(canvas, cx - 75, size.height * 0.18, 12, personColor, personFill);
     _drawPerson(canvas, cx + 78, size.height * 0.14, 12, personColor, personFill);
     _drawPerson(canvas, cx - 40, size.height * 0.08, 12, personColor, personFill);
     _drawPerson(canvas, cx + 30, size.height * 0.04, 12, personColor, personFill);
 
-    // The one who has passed — starts at the trunk top, falls as a leaf
     final fall = Curves.easeInOut.transform(progress);
     final startX = cx;
     final startY = size.height * 0.32;
@@ -230,7 +225,6 @@ class _FamilyTreePainter extends CustomPainter {
     final leafX = startX + math.sin(progress * math.pi * 2.5) * 30;
     final leafY = startY + (fall * (endY - startY));
 
-    // Fading person circle at the departure point
     final departAlpha = (1.0 - fall).clamp(0.0, 1.0);
     if (departAlpha > 0.05) {
       _drawPerson(
@@ -243,7 +237,6 @@ class _FamilyTreePainter extends CustomPainter {
       );
     }
 
-    // Falling leaf
     canvas.save();
     canvas.translate(leafX, leafY);
     canvas.rotate(-0.5 + (progress * 2.8));
@@ -261,7 +254,6 @@ class _FamilyTreePainter extends CustomPainter {
         ..style = PaintingStyle.fill,
     );
 
-    // Leaf vein
     final veinPaint = Paint()
       ..color = leafVeinColor
       ..style = PaintingStyle.stroke
@@ -274,7 +266,6 @@ class _FamilyTreePainter extends CustomPainter {
 
     canvas.restore();
 
-    // Ground — a gentle support arc
     final groundPaint = Paint()
       ..color = groundColor
       ..style = PaintingStyle.stroke
@@ -296,7 +287,6 @@ class _FamilyTreePainter extends CustomPainter {
     Color stroke,
     Color fill,
   ) {
-    // Head
     canvas.drawCircle(
       Offset(x, y - radius * 0.4),
       radius * 0.42,
@@ -313,7 +303,6 @@ class _FamilyTreePainter extends CustomPainter {
         ..strokeWidth = 1.8,
     );
 
-    // Body
     final bodyPaint = Paint()
       ..color = stroke
       ..style = PaintingStyle.stroke
@@ -326,14 +315,12 @@ class _FamilyTreePainter extends CustomPainter {
       bodyPaint,
     );
 
-    // Arms
     canvas.drawLine(
       Offset(x - radius * 0.4, y + radius * 0.35),
       Offset(x + radius * 0.4, y + radius * 0.35),
       bodyPaint,
     );
 
-    // Legs
     canvas.drawLine(
       Offset(x, y + radius * 0.85),
       Offset(x - radius * 0.3, y + radius * 1.3),

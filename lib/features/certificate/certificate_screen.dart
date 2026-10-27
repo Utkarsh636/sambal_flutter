@@ -177,7 +177,9 @@ class _CertificateScreenState extends State<CertificateScreen> {
                     child: OutlinedButton(
                       onPressed: () {
                         if (_step == 0) {
-                          Navigator.of(context).pop();
+                          if (Navigator.of(context).canPop()) {
+                            Navigator.of(context).pop();
+                          }
                         } else {
                           _goToStep(_step - 1);
                         }

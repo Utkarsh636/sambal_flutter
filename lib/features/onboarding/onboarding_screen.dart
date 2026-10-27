@@ -5,7 +5,7 @@ import 'package:http/http.dart' as http;
 
 import '../../core/config/api_config.dart';
 import '../case/case_controller.dart';
-import '../home/home_screen.dart';
+import '../shell/shell_screen.dart';
 
 class OnboardingScreen extends StatefulWidget {
   const OnboardingScreen({super.key});
@@ -181,7 +181,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       );
 
       Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (_) => const HomeScreen()),
+        MaterialPageRoute(builder: (_) => const ShellScreen()),
       );
       return;
     }
