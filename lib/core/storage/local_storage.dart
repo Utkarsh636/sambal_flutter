@@ -65,6 +65,30 @@ class LocalStorage {
     return ms != null ? DateTime.fromMillisecondsSinceEpoch(ms) : null;
   }
 
+  static Set<String> get roadmapDoneIds =>
+      (_prefs.getStringList('roadmapDoneIds') ?? []).toSet();
+
+  static set roadmapDoneIds(Set<String> value) =>
+      _prefs.setStringList('roadmapDoneIds', value.toList());
+
+  static bool get certificateReceived =>
+      _prefs.getBool('certificateReceived') ?? false;
+
+  static set certificateReceived(bool value) =>
+      _prefs.setBool('certificateReceived', value);
+
+  static Map<String, List<String>> loadDocuments() {
+    final raw = _prefs.getString('documents');
+    if (raw == null) return {};
+    final json = jsonDecode(raw) as Map<String, dynamic>;
+    return json.map((key, value) =>
+        MapEntry(key, (value as List).cast<String>()));
+  }
+
+  static void saveDocuments(Map<String, List<String>> docs) {
+    _prefs.setString('documents', jsonEncode(docs));
+  }
+
   static Future<void> clearAll() async {
     await _prefs.clear();
   }

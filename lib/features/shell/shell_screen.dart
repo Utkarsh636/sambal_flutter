@@ -10,11 +10,13 @@ class ShellScreen extends StatefulWidget {
   const ShellScreen({super.key});
 
   @override
-  State<ShellScreen> createState() => _ShellScreenState();
+  ShellScreenState createState() => ShellScreenState();
 }
 
-class _ShellScreenState extends State<ShellScreen> {
+class ShellScreenState extends State<ShellScreen> {
   int _index = 0;
+
+  void switchTab(int index) => setState(() => _index = index);
 
   @override
   Widget build(BuildContext context) {

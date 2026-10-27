@@ -485,7 +485,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
     return page(
       title: t('निधन की तारीख क्या थी?', 'What was the date of death?'),
-      subtitle: t('बाद में इसे बदल सकते हैं।', 'You can change this later.'),
+      subtitle: t('कृपया सही तारीख चुनें — बाद में बदल सकते हैं।', 'Please select the correct date — you can change it later.'),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

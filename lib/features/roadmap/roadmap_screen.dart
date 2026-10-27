@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../core/storage/local_storage.dart';
 import '../../core/theme/app_theme.dart';
 import '../case/case_controller.dart';
 
@@ -33,10 +34,17 @@ class RoadmapScreen extends StatefulWidget {
 }
 
 class _RoadmapScreenState extends State<RoadmapScreen> {
-  bool certificateReceived = false;
+  late bool certificateReceived;
   bool onlyMine = true;
   String filter = 'all';
-  final doneIds = <String>{};
+  late Set<String> doneIds;
+
+  @override
+  void initState() {
+    super.initState();
+    certificateReceived = LocalStorage.certificateReceived;
+    doneIds = LocalStorage.roadmapDoneIds;
+  }
 
   final steps = const [
     RoadmapItem(
@@ -158,6 +166,7 @@ class _RoadmapScreenState extends State<RoadmapScreen> {
                     FilledButton(
                       onPressed: () {
                         setState(() => certificateReceived = true);
+                        LocalStorage.certificateReceived = true;
                       },
                       child: Text(
                         t(
@@ -324,6 +333,7 @@ class _RoadmapScreenState extends State<RoadmapScreen> {
                       ? null
                       : () {
                           setState(() => doneIds.add(step.id));
+                          LocalStorage.roadmapDoneIds = doneIds;
                           Navigator.pop(sheetContext);
                         },
                   child: Text(

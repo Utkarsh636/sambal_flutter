@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../core/storage/local_storage.dart';
 import '../case/case_controller.dart';
 
 class DocumentCategory {
@@ -63,15 +64,25 @@ class _DocumentsScreenState extends State<DocumentsScreen> {
   ];
 
   String selectedCategory = 'id';
+  late Map<String, List<String>> documents;
 
-  final documents = <String, List<String>>{
-    'id': ['Aadhaar (last 4 digits only)'],
-    'certificate': [],
-    'bank': ['Bank passbook photo'],
-    'insurance': [],
-    'property': [],
-    'other': [],
-  };
+  @override
+  void initState() {
+    super.initState();
+    final saved = LocalStorage.loadDocuments();
+    documents = saved.isNotEmpty
+        ? saved
+        : {
+            'id': [],
+            'certificate': [],
+            'bank': [],
+            'insurance': [],
+            'property': [],
+            'other': [],
+          };
+  }
+
+  void _persist() => LocalStorage.saveDocuments(documents);
 
   @override
   Widget build(BuildContext context) {
@@ -171,6 +182,7 @@ class _DocumentsScreenState extends State<DocumentsScreen> {
                   tooltip: t('दस्तावेज़ हटाएँ', 'Delete document'),
                   onPressed: () {
                     setState(() => currentDocuments.remove(document));
+                    _persist();
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
                         content: Text(t('दस्तावेज़ हटाया गया', 'Document deleted')),
@@ -190,33 +202,48 @@ class _DocumentsScreenState extends State<DocumentsScreen> {
           ),
           const SizedBox(height: 8),
 
-          Card(
-            child: Column(
-              children: [
-                ListTile(
-                  leading: const Icon(Icons.pending_actions_outlined),
-                  title: Text(
-                    t(
-                      'मृत्यु प्रमाणपत्र की प्रति',
-                      'Copy of death certificate',
-                    ),
-                  ),
-                ),
-                ListTile(
-                  leading: const Icon(Icons.pending_actions_outlined),
-                  title: Text(
-                    t(
-                      'अस्पताल का मृत्यु-कारण प्रमाणपत्र',
-                      'Hospital cause-of-death certificate',
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
+          _buildStillNeeded(context, t),
 
           const SizedBox(height: 72),
         ],
+      ),
+    );
+  }
+
+  Widget _buildStillNeeded(
+    BuildContext context,
+    String Function(String, String) t,
+  ) {
+    final caseData = SambalScope.of(context).data;
+    final circumstance = caseData.circumstance.toLowerCase();
+
+    final needed = <({String hi, String en})>[];
+
+    needed.add((hi: 'मृत्यु प्रमाणपत्र की प्रति', en: 'Copy of death certificate'));
+    needed.add((hi: 'सूचनादाता का पहचान पत्र', en: "Informant's ID proof"));
+    needed.add((hi: 'मृतक का पहचान पत्र', en: "Deceased's ID proof"));
+
+    if (circumstance == 'hospital') {
+      needed.add((hi: 'अस्पताल का मृत्यु-कारण प्रमाणपत्र (MCCD)', en: 'Medical Certificate of Cause of Death (MCCD)'));
+      needed.add((hi: 'अस्पताल डिस्चार्ज सारांश', en: 'Hospital discharge summary'));
+    } else if (circumstance == 'home') {
+      needed.add((hi: 'परिवार के सदस्य का घोषणा पत्र', en: 'Declaration from family member'));
+      needed.add((hi: 'अंतिम संस्कार प्रमाण पत्र', en: 'Cremation / burial certificate'));
+    } else if (circumstance == 'accident') {
+      needed.add((hi: 'FIR की प्रति', en: 'Copy of FIR'));
+      needed.add((hi: 'पोस्टमार्टम रिपोर्ट', en: 'Postmortem report'));
+    }
+
+    return Card(
+      child: Column(
+        children: needed
+            .map(
+              (item) => ListTile(
+                leading: const Icon(Icons.pending_actions_outlined),
+                title: Text(t(item.hi, item.en)),
+              ),
+            )
+            .toList(),
       ),
     );
   }
@@ -258,6 +285,7 @@ class _DocumentsScreenState extends State<DocumentsScreen> {
                       documents.putIfAbsent(selectedCategory, () => []);
                       documents[selectedCategory]!.add(name);
                     });
+                    _persist();
 
                     Navigator.pop(sheetContext);
                     ScaffoldMessenger.of(context).showSnackBar(

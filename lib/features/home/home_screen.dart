@@ -4,6 +4,7 @@ import '../case/case_controller.dart';
 import '../common/theme_toggle.dart';
 import '../roadmap/roadmap_screen.dart';
 import '../settings/privacy_screen.dart';
+import '../shell/shell_screen.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -78,6 +79,58 @@ class HomeScreen extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 18),
+          Card(
+            color: Theme.of(context).colorScheme.primaryContainer,
+            child: InkWell(
+              borderRadius: BorderRadius.circular(24),
+              onTap: () {
+                final shell = context.findAncestorStateOfType<ShellScreenState>();
+                shell?.switchTab(1);
+              },
+              child: Padding(
+                padding: const EdgeInsets.all(20),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.description_rounded,
+                      size: 36,
+                      color: Theme.of(context).colorScheme.onPrimaryContainer,
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            t('मृत्यु प्रमाणपत्र गाइड शुरू करें', 'Start certificate guide'),
+                            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                              color: Theme.of(context).colorScheme.onPrimaryContainer,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            t(
+                              'दस्तावेज़, फीस, और आवेदन — सब एक जगह',
+                              'Documents, fees, and application — all in one place',
+                            ),
+                            style: TextStyle(
+                              color: Theme.of(context).colorScheme.onPrimaryContainer.withValues(alpha: 0.8),
+                              fontSize: 13,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Icon(
+                      Icons.arrow_forward_rounded,
+                      color: Theme.of(context).colorScheme.onPrimaryContainer,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
           ListTile(
             leading: const Icon(Icons.route_outlined),
             title: Text(t('आगे का रास्ता', 'Your roadmap')),

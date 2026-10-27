@@ -51,7 +51,10 @@ class _CertificateScreenState extends State<CertificateScreen> {
     if (caseData.state.trim().isEmpty) {
       setState(() {
         _isLoading = false;
-        _error = 'पहले अपना राज्य और जिला चुनें।';
+        _error = _text(
+          'पहले अपना राज्य और जिला चुनें।',
+          'Please select your state and district first.',
+        );
       });
       return;
     }
@@ -102,7 +105,10 @@ class _CertificateScreenState extends State<CertificateScreen> {
 
       setState(() {
         _isLoading = false;
-        _error = 'गाइड लोड नहीं हो सका। इंटरनेट और Sambal API जाँचें।';
+        _error = _text(
+          'गाइड लोड नहीं हो सका। इंटरनेट और Sambal API जाँचें।',
+          'Could not load guide. Check your internet and Sambal API.',
+        );
       });
     }
   }
@@ -157,8 +163,8 @@ class _CertificateScreenState extends State<CertificateScreen> {
                 const SizedBox(height: 12),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: const [
-                    _StepLabel(number: '1', hindi: 'शुरू', english: 'Start'),
+                  children: [
+                    const _StepLabel(number: '1', hindi: 'शुरू', english: 'Start'),
                     _StepLabel(
                       number: '2',
                       hindi: 'दस्तावेज़',
