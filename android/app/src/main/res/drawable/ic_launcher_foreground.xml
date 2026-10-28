@@ -5,23 +5,26 @@
     android:viewportWidth="108"
     android:viewportHeight="108">
 
-    <!-- Leaf shape -->
+    <!-- Thin curved stem -->
     <path
-        android:pathData="M54,28 C66,30 72,42 72,54 C72,66 62,78 54,80 C46,78 36,66 36,54 C36,42 42,30 54,28 Z"
-        android:fillColor="#FFF8E7"
-        android:fillAlpha="0.9" />
+        android:pathData="M54,70 C54,62 54,54 55,48 C56,42 57,38 59,35"
+        android:strokeColor="#EDE8DF"
+        android:strokeWidth="2.2"
+        android:strokeLineCap="round"
+        android:fillColor="#00000000" />
 
-    <!-- Leaf vein -->
+    <!-- Left leaf - rounded teardrop -->
     <path
-        android:pathData="M54,34 L54,74"
-        android:strokeColor="#D6B38C"
-        android:strokeWidth="1.5" />
+        android:pathData="M54,54 C50,56 42,54 38,48 C36,44 38,42 40,42 C44,42 50,48 54,52 Z"
+        android:fillColor="#EDE8DF" />
+
+    <!-- Right leaf - rounded teardrop -->
     <path
-        android:pathData="M54,48 L62,42"
-        android:strokeColor="#D6B38C"
-        android:strokeWidth="1.2" />
+        android:pathData="M56,46 C60,48 68,46 72,40 C74,36 72,34 70,34 C66,34 60,40 56,44 Z"
+        android:fillColor="#EDE8DF" />
+
+    <!-- Small warm accent bud at top -->
     <path
-        android:pathData="M54,56 L46,50"
-        android:strokeColor="#D6B38C"
-        android:strokeWidth="1.2" />
+        android:pathData="M59,36 C60,34 62,30 65,29 C64,31 62,34 60,37 Z"
+        android:fillColor="#C4956A" />
 </vector>

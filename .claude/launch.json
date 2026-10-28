@@ -5,8 +5,7 @@
       "name": "sambal-api",
       "runtimeExecutable": "node",
       "runtimeArgs": ["/Users/utkarsh060/projects/sambal_api/server.js"],
-      "port": 3000,
-      "url": "http://localhost:3000"
+      "port": 3000
     }
   ]
 }
