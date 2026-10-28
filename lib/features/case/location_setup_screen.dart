@@ -217,7 +217,7 @@ class _LocationSetupScreenState extends State<LocationSetupScreen> {
                   const SizedBox(height: 24),
                   DropdownButtonFormField<String>(
                     key: ValueKey("state-$_selectedState"),
-                    value: _selectedState,
+                    initialValue: _selectedState,
                     isExpanded: true,
                     decoration: InputDecoration(
                       labelText: _t("राज्य", "State"),
@@ -245,7 +245,7 @@ class _LocationSetupScreenState extends State<LocationSetupScreen> {
                   const SizedBox(height: 18),
                   DropdownButtonFormField<String>(
                     key: ValueKey("district-$_selectedDistrict"),
-                    value: _selectedDistrict,
+                    initialValue: _selectedDistrict,
                     isExpanded: true,
                     decoration: InputDecoration(
                       labelText: _t("जिला", "District"),

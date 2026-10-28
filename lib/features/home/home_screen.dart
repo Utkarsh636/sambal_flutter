@@ -12,8 +12,31 @@ import '../settings/privacy_screen.dart';
 import '../shell/shell_screen.dart';
 import 'preparation_screen.dart';
 
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
+
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _animController;
+
+  @override
+  void initState() {
+    super.initState();
+    _animController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 900),
+    )..forward();
+  }
+
+  @override
+  void dispose() {
+    _animController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -28,6 +51,20 @@ class HomeScreen extends StatelessWidget {
     final scannedDocs = LocalStorage.loadScannedDocs();
     final roadmapDone = LocalStorage.roadmapDoneIds;
     final certReceived = LocalStorage.certificateReceived;
+
+    int idx = 0;
+    Widget stagger(Widget child) {
+      final i = idx++;
+      final start = (i * 0.08).clamp(0.0, 0.6);
+      final end = (start + 0.4).clamp(0.0, 1.0);
+      return _FadeSlideIn(
+        animation: CurvedAnimation(
+          parent: _animController,
+          curve: Interval(start, end, curve: Curves.easeOutCubic),
+        ),
+        child: child,
+      );
+    }
 
     return Scaffold(
       appBar: AppBar(
@@ -44,14 +81,13 @@ class HomeScreen extends StatelessWidget {
       body: ListView(
         padding: const EdgeInsets.all(20),
         children: [
-          Text(
+          stagger(Text(
             t('आज एक ही कदम लें', 'Take one step today'),
             style: Theme.of(context).textTheme.headlineSmall,
-          ),
+          )),
           const SizedBox(height: 14),
 
-          // Deadline card
-          Card(
+          stagger(Card(
             child: Padding(
               padding: const EdgeInsets.all(20),
               child: Column(
@@ -95,18 +131,17 @@ class HomeScreen extends StatelessWidget {
                 ],
               ),
             ),
-          ),
+          )),
 
           const SizedBox(height: 18),
 
-          // Journey progress
-          Text(
+          stagger(Text(
             t('आपकी यात्रा', 'Your journey'),
             style: Theme.of(context).textTheme.titleMedium,
-          ),
+          )),
           const SizedBox(height: 10),
 
-          _JourneyTracker(
+          stagger(_JourneyTracker(
             steps: [
               _JourneyStep(
                 icon: Icons.location_on_outlined,
@@ -134,12 +169,11 @@ class HomeScreen extends StatelessWidget {
               ),
             ],
             colors: colors,
-          ),
+          )),
 
           const SizedBox(height: 18),
 
-          // Certificate guide CTA
-          Card(
+          stagger(Card(
             color: colors.primaryContainer,
             child: InkWell(
               borderRadius: BorderRadius.circular(24),
@@ -186,12 +220,12 @@ class HomeScreen extends StatelessWidget {
                 ),
               ),
             ),
-          ),
+          )),
 
           // Scan documents CTA
           if (scannedDocs.isEmpty) ...[
             const SizedBox(height: 10),
-            Card(
+            stagger(Card(
               child: InkWell(
                 borderRadius: BorderRadius.circular(24),
                 onTap: () {
@@ -231,11 +265,11 @@ class HomeScreen extends StatelessWidget {
                   ),
                 ),
               ),
-            ),
+            )),
           ],
 
           const SizedBox(height: 12),
-          ListTile(
+          stagger(ListTile(
             leading: const Icon(Icons.assignment_outlined),
             title: Text(t('तैयारी पैक', 'Preparation pack')),
             subtitle: Text(t(
@@ -248,8 +282,8 @@ class HomeScreen extends StatelessWidget {
                 MaterialPageRoute(builder: (_) => const PreparationScreen()),
               );
             },
-          ),
-          ListTile(
+          )),
+          stagger(ListTile(
             leading: const Icon(Icons.route_outlined),
             title: Text(t('आगे का रास्ता', 'Your roadmap')),
             subtitle: Text(t(
@@ -262,8 +296,8 @@ class HomeScreen extends StatelessWidget {
                 MaterialPageRoute(builder: (_) => const RoadmapScreen()),
               );
             },
-          ),
-          ListTile(
+          )),
+          stagger(ListTile(
             leading: const Icon(Icons.phone_in_talk_outlined),
             title: Text(t('हेल्पलाइन नंबर', 'Helpline numbers')),
             subtitle: Text(t('आपातकालीन और सरकारी हेल्पलाइन',
@@ -274,8 +308,8 @@ class HomeScreen extends StatelessWidget {
                 MaterialPageRoute(builder: (_) => const HelplineScreen()),
               );
             },
-          ),
-          ListTile(
+          )),
+          stagger(ListTile(
             leading: const Icon(Icons.help_outline_rounded),
             title: Text(t('अक्सर पूछे जाने वाले प्रश्न', 'FAQ')),
             subtitle: Text(t('सामान्य प्रश्न और उत्तर',
@@ -286,8 +320,8 @@ class HomeScreen extends StatelessWidget {
                 MaterialPageRoute(builder: (_) => const FaqScreen()),
               );
             },
-          ),
-          ListTile(
+          )),
+          stagger(ListTile(
             leading: const Icon(Icons.shield_outlined),
             title: Text(t('गोपनीयता और डेटा', 'Privacy & Data')),
             subtitle:
@@ -298,8 +332,8 @@ class HomeScreen extends StatelessWidget {
                 MaterialPageRoute(builder: (_) => const PrivacyScreen()),
               );
             },
-          ),
-          ListTile(
+          )),
+          stagger(ListTile(
             leading: const Icon(Icons.info_outline_rounded),
             title: Text(t('Sambal के बारे में', 'About Sambal')),
             subtitle: Text(t('ऐप जानकारी और अस्वीकरण',
@@ -310,7 +344,7 @@ class HomeScreen extends StatelessWidget {
                 MaterialPageRoute(builder: (_) => const AboutScreen()),
               );
             },
-          ),
+          )),
         ],
       ),
     );
@@ -432,6 +466,29 @@ class _JourneyTracker extends StatelessWidget {
           textAlign: TextAlign.center,
         ),
       ],
+    );
+  }
+}
+
+class _FadeSlideIn extends StatelessWidget {
+  final Animation<double> animation;
+  final Widget child;
+
+  const _FadeSlideIn({required this.animation, required this.child});
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: animation,
+      builder: (context, _) {
+        return Opacity(
+          opacity: animation.value,
+          child: Transform.translate(
+            offset: Offset(0, 16 * (1 - animation.value)),
+            child: child,
+          ),
+        );
+      },
     );
   }
 }

@@ -539,7 +539,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             const Center(child: CircularProgressIndicator())
           else
             DropdownButtonFormField<String>(
-              value: stateName.isEmpty ? null : stateName,
+              initialValue: stateName.isEmpty ? null : stateName,
               decoration: InputDecoration(
                 labelText: t('राज्य', 'State'),
               ),
@@ -593,7 +593,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           else
             DropdownButtonFormField<String>(
               key: ValueKey('district-$stateName'),
-              value: district.isEmpty ? null : district,
+              initialValue: district.isEmpty ? null : district,
               decoration: InputDecoration(
                 labelText: t('ज़िला', 'District'),
               ),
