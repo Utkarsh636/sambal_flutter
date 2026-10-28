@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../case/case_controller.dart';
+import '../documents/scanner_service.dart';
 import '../onboarding/splash_screen.dart';
 
 class PrivacyScreen extends StatelessWidget {
@@ -140,6 +141,7 @@ class PrivacyScreen extends StatelessWidget {
           FilledButton(
             onPressed: () async {
               Navigator.of(ctx).pop();
+              await ScannerService.deleteAllScans();
               await controller.clearAllData();
               if (!context.mounted) return;
               Navigator.of(context).pushAndRemoveUntil(

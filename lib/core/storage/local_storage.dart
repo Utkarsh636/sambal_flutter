@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../features/case/case_controller.dart';
+import '../../features/documents/scanned_document.dart';
 
 class LocalStorage {
   static late final SharedPreferences _prefs;
@@ -87,6 +88,22 @@ class LocalStorage {
 
   static void saveDocuments(Map<String, List<String>> docs) {
     _prefs.setString('documents', jsonEncode(docs));
+  }
+
+  static List<ScannedDocument> loadScannedDocs() {
+    final raw = _prefs.getString('scannedDocs');
+    if (raw == null) return [];
+    final list = jsonDecode(raw) as List;
+    return list
+        .map((e) => ScannedDocument.fromJson(e as Map<String, dynamic>))
+        .toList();
+  }
+
+  static void saveScannedDocs(List<ScannedDocument> docs) {
+    _prefs.setString(
+      'scannedDocs',
+      jsonEncode(docs.map((d) => d.toJson()).toList()),
+    );
   }
 
   static Future<void> clearAll() async {

@@ -1,6 +1,12 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
+
 import '../../core/storage/local_storage.dart';
 import '../case/case_controller.dart';
+import 'capture_screen.dart';
+import 'pdf_service.dart';
+import 'scanned_document.dart';
 
 class DocumentCategory {
   const DocumentCategory({
@@ -24,134 +30,249 @@ class DocumentsScreen extends StatefulWidget {
 }
 
 class _DocumentsScreenState extends State<DocumentsScreen> {
-  final categories = const [
-    DocumentCategory(
-      id: 'id',
-      hi: 'पहचान पत्र',
-      en: 'Identity',
-      icon: Icons.badge_outlined,
-    ),
-    DocumentCategory(
-      id: 'certificate',
-      hi: 'मृत्यु प्रमाणपत्र',
-      en: 'Death certificate',
-      icon: Icons.description_outlined,
-    ),
-    DocumentCategory(
-      id: 'bank',
-      hi: 'बैंक',
-      en: 'Bank',
-      icon: Icons.account_balance_outlined,
-    ),
-    DocumentCategory(
-      id: 'insurance',
-      hi: 'बीमा',
-      en: 'Insurance',
-      icon: Icons.health_and_safety_outlined,
-    ),
-    DocumentCategory(
-      id: 'property',
-      hi: 'संपत्ति',
-      en: 'Property',
-      icon: Icons.home_work_outlined,
-    ),
-    DocumentCategory(
-      id: 'other',
-      hi: 'अन्य',
-      en: 'Other',
-      icon: Icons.folder_outlined,
-    ),
+  static const categories = [
+    DocumentCategory(id: 'id', hi: 'पहचान पत्र', en: 'Identity', icon: Icons.badge_outlined),
+    DocumentCategory(id: 'certificate', hi: 'मृत्यु प्रमाणपत्र', en: 'Death certificate', icon: Icons.description_outlined),
+    DocumentCategory(id: 'bank', hi: 'बैंक', en: 'Bank', icon: Icons.account_balance_outlined),
+    DocumentCategory(id: 'insurance', hi: 'बीमा', en: 'Insurance', icon: Icons.health_and_safety_outlined),
+    DocumentCategory(id: 'property', hi: 'संपत्ति', en: 'Property', icon: Icons.home_work_outlined),
+    DocumentCategory(id: 'other', hi: 'अन्य', en: 'Other', icon: Icons.folder_outlined),
   ];
 
-  String selectedCategory = 'id';
-  late Map<String, List<String>> documents;
+  String _selectedCategory = 'id';
+  List<ScannedDocument> _docs = [];
+  bool _generatingPdf = false;
 
   @override
   void initState() {
     super.initState();
-    final saved = LocalStorage.loadDocuments();
-    documents = saved.isNotEmpty
-        ? saved
-        : {
-            'id': [],
-            'certificate': [],
-            'bank': [],
-            'insurance': [],
-            'property': [],
-            'other': [],
-          };
+    _docs = LocalStorage.loadScannedDocs();
   }
 
-  void _persist() => LocalStorage.saveDocuments(documents);
+  void _persist() => LocalStorage.saveScannedDocs(_docs);
+
+  List<ScannedDocument> get _currentDocs =>
+      _docs.where((d) => d.categoryId == _selectedCategory).toList();
+
+  Future<void> _openScanner() async {
+    final result = await Navigator.push<ScannedDocument>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => CaptureScreen(initialCategory: _selectedCategory),
+      ),
+    );
+    if (result != null) {
+      setState(() => _docs.add(result));
+      _persist();
+      if (mounted) {
+        final t = _t;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(t('दस्तावेज़ सहेजा गया', 'Document saved'))),
+        );
+      }
+    }
+  }
+
+  void _deleteDoc(ScannedDocument doc) {
+    setState(() => _docs.removeWhere((d) => d.id == doc.id));
+    _persist();
+    for (final path in doc.imagePaths) {
+      File(path).delete().ignore();
+    }
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(_t('दस्तावेज़ हटाया गया', 'Document deleted'))),
+    );
+  }
+
+  Future<void> _generatePdf() async {
+    if (_docs.isEmpty) return;
+    setState(() => _generatingPdf = true);
+    try {
+      final caseData = SambalScope.of(context).data;
+      final isHindi = SambalScope.of(context).isHindi;
+      final file = await PdfService.generatePack(
+        caseData: caseData,
+        documents: _docs,
+        isHindi: isHindi,
+      );
+      if (!mounted) return;
+      await _showPdfActions(file);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(_t('PDF बनाने में त्रुटि', 'Error generating PDF'))),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _generatingPdf = false);
+    }
+  }
+
+  Future<void> _showPdfActions(File pdfFile) async {
+    final action = await showModalBottomSheet<String>(
+      context: context,
+      showDragHandle: true,
+      builder: (ctx) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                _t('PDF तैयार है', 'PDF ready'),
+                style: Theme.of(ctx).textTheme.titleLarge,
+              ),
+              const SizedBox(height: 20),
+              ListTile(
+                leading: const Icon(Icons.print_outlined),
+                title: Text(_t('प्रिंट करें', 'Print')),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                onTap: () => Navigator.pop(ctx, 'print'),
+              ),
+              ListTile(
+                leading: const Icon(Icons.share_outlined),
+                title: Text(_t('शेयर करें', 'Share')),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                onTap: () => Navigator.pop(ctx, 'share'),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+    if (action == 'print') {
+      await PdfService.printPack(pdfFile);
+    } else if (action == 'share') {
+      await PdfService.sharePack(pdfFile);
+    }
+  }
+
+  String Function(String, String) get _t {
+    final hindi = SambalScope.of(context).isHindi;
+    return (String hi, String en) => hindi ? hi : en;
+  }
 
   @override
   Widget build(BuildContext context) {
-    final controller = SambalScope.of(context);
-    final hindi = controller.isHindi;
-    String t(String hi, String en) => hindi ? hi : en;
-
-    final selected = categories.firstWhere((item) => item.id == selectedCategory);
-    final currentDocuments = documents[selectedCategory] ?? [];
+    final t = _t;
+    final hindi = SambalScope.of(context).isHindi;
+    final colors = Theme.of(context).colorScheme;
+    final selected = categories.firstWhere((c) => c.id == _selectedCategory);
+    final currentDocs = _currentDocs;
 
     return Scaffold(
-      appBar: AppBar(title: Text(t('दस्तावेज़', 'Documents'))),
+      appBar: AppBar(
+        title: Text(t('दस्तावेज़', 'Documents')),
+        actions: [
+          if (_docs.isNotEmpty)
+            IconButton(
+              onPressed: _generatingPdf ? null : _generatePdf,
+              icon: _generatingPdf
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.picture_as_pdf_outlined),
+              tooltip: t('PDF बनाएँ', 'Generate PDF'),
+            ),
+        ],
+      ),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _addDocument(context, t),
+        onPressed: _openScanner,
         icon: const Icon(Icons.add_a_photo_outlined),
-        label: Text(t('जोड़ें', 'Add')),
+        label: Text(t('स्कैन करें', 'Scan')),
       ),
       body: ListView(
         padding: const EdgeInsets.all(20),
         children: [
           Text(
-            t('ज़रूरी कागज़ एक जगह रखें', 'Keep important papers in one place'),
+            t('अपने ज़रूरी कागज़ स्कैन करके रखें',
+                'Scan and keep your important documents'),
             style: Theme.of(context).textTheme.headlineSmall,
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 4),
           Text(
-            t(
-              'अभी दस्तावेज़ सिर्फ़ इस ऐप के डेमो में दिखते हैं।',
-              'For now, documents are shown only inside this app demo.',
-            ),
+            t('सभी स्कैन सिर्फ़ आपके फ़ोन पर रहते हैं।',
+                'All scans stay only on your phone.'),
+            style: TextStyle(color: colors.onSurfaceVariant),
           ),
-          const SizedBox(height: 18),
 
+          if (_docs.isNotEmpty) ...[
+            const SizedBox(height: 16),
+            Card(
+              color: colors.primaryContainer,
+              child: InkWell(
+                borderRadius: BorderRadius.circular(24),
+                onTap: _generatingPdf ? null : _generatePdf,
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Row(
+                    children: [
+                      Icon(Icons.picture_as_pdf_outlined, color: colors.onPrimaryContainer),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              t('PDF पैक बनाएँ और शेयर करें',
+                                  'Generate & share PDF pack'),
+                              style: TextStyle(
+                                fontWeight: FontWeight.w700,
+                                color: colors.onPrimaryContainer,
+                              ),
+                            ),
+                            Text(
+                              t('${_docs.length} दस्तावेज़ स्कैन किए गए',
+                                  '${_docs.length} documents scanned'),
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: colors.onPrimaryContainer.withValues(alpha: 0.7),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Icon(Icons.arrow_forward_ios, size: 16, color: colors.onPrimaryContainer),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ],
+
+          const SizedBox(height: 18),
           Text(
             t('श्रेणियाँ', 'Categories'),
             style: Theme.of(context).textTheme.titleMedium,
           ),
           const SizedBox(height: 10),
-
           Wrap(
             spacing: 8,
             runSpacing: 8,
-            children: categories.map((category) {
+            children: categories.map((cat) {
+              final count = _docs.where((d) => d.categoryId == cat.id).length;
               return ChoiceChip(
-                avatar: Icon(
-                  category.icon,
-                  size: 18,
-                  color: selectedCategory == category.id
-                      ? Theme.of(context).colorScheme.primary
-                      : null,
+                avatar: Icon(cat.icon, size: 18,
+                    color: _selectedCategory == cat.id ? colors.primary : null),
+                label: Text(
+                  '${hindi ? cat.hi : cat.en}${count > 0 ? ' ($count)' : ''}',
                 ),
-                label: Text(hindi ? category.hi : category.en),
-                selected: selectedCategory == category.id,
-                onSelected: (_) {
-                  setState(() => selectedCategory = category.id);
-                },
+                selected: _selectedCategory == cat.id,
+                onSelected: (_) => setState(() => _selectedCategory = cat.id),
               );
             }).toList(),
           ),
 
           const SizedBox(height: 22),
-
           Text(
             hindi ? selected.hi : selected.en,
             style: Theme.of(context).textTheme.titleMedium,
           ),
           const SizedBox(height: 8),
 
-          if (currentDocuments.isEmpty)
+          if (currentDocs.isEmpty)
             Card(
               child: Padding(
                 padding: const EdgeInsets.all(20),
@@ -160,51 +281,36 @@ class _DocumentsScreenState extends State<DocumentsScreen> {
                     const Icon(Icons.folder_open_outlined, size: 44),
                     const SizedBox(height: 10),
                     Text(
-                      t(
-                        'इस श्रेणी में अभी कोई दस्तावेज़ नहीं है।',
-                        'There are no documents in this category yet.',
-                      ),
+                      t('इस श्रेणी में अभी कोई स्कैन नहीं है।',
+                          'No scans in this category yet.'),
                       textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 12),
+                    OutlinedButton.icon(
+                      onPressed: _openScanner,
+                      icon: const Icon(Icons.add_a_photo_outlined, size: 18),
+                      label: Text(t('स्कैन करें', 'Scan')),
                     ),
                   ],
                 ),
               ),
             ),
 
-          ...currentDocuments.map(
-            (document) => Card(
-              child: ListTile(
-                leading: Icon(selected.icon),
-                title: Text(document),
-                subtitle: Text(t('डेमो दस्तावेज़', 'Demo document')),
-                trailing: IconButton(
-                  icon: const Icon(Icons.delete_outline),
-                  tooltip: t('दस्तावेज़ हटाएँ', 'Delete document'),
-                  onPressed: () {
-                    setState(() => currentDocuments.remove(document));
-                    _persist();
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(t('दस्तावेज़ हटाया गया', 'Document deleted')),
-                      ),
-                    );
-                  },
-                ),
-              ),
-            ),
-          ),
+          ...currentDocs.map((doc) => _DocCard(
+                doc: doc,
+                category: selected,
+                isHindi: hindi,
+                onDelete: () => _deleteDoc(doc),
+              )),
 
           const SizedBox(height: 24),
-
           Text(
             t('अभी भी चाहिए', 'Still needed'),
             style: Theme.of(context).textTheme.titleMedium,
           ),
           const SizedBox(height: 8),
-
           _buildStillNeeded(context, t),
-
-          const SizedBox(height: 72),
+          const SizedBox(height: 80),
         ],
       ),
     );
@@ -216,9 +322,9 @@ class _DocumentsScreenState extends State<DocumentsScreen> {
   ) {
     final caseData = SambalScope.of(context).data;
     final circumstance = caseData.circumstance.toLowerCase();
+    final colors = Theme.of(context).colorScheme;
 
     final needed = <({String hi, String en})>[];
-
     needed.add((hi: 'मृत्यु प्रमाणपत्र की प्रति', en: 'Copy of death certificate'));
     needed.add((hi: 'सूचनादाता का पहचान पत्र', en: "Informant's ID proof"));
     needed.add((hi: 'मृतक का पहचान पत्र', en: "Deceased's ID proof"));
@@ -234,82 +340,165 @@ class _DocumentsScreenState extends State<DocumentsScreen> {
       needed.add((hi: 'पोस्टमार्टम रिपोर्ट', en: 'Postmortem report'));
     }
 
+    final scannedLabels = _docs.map((d) => d.label.toLowerCase()).toSet();
+
     return Card(
       child: Column(
-        children: needed
-            .map(
-              (item) => ListTile(
-                leading: const Icon(Icons.pending_actions_outlined),
-                title: Text(t(item.hi, item.en)),
+        children: needed.map((item) {
+          final matched = scannedLabels.any((l) =>
+              l.contains(item.en.toLowerCase().split(' ').first) ||
+              l.contains(item.hi.split(' ').first));
+          return ListTile(
+            leading: Icon(
+              matched ? Icons.check_circle_outline : Icons.pending_actions_outlined,
+              color: matched ? colors.primary : null,
+            ),
+            title: Text(
+              t(item.hi, item.en),
+              style: matched
+                  ? TextStyle(
+                      decoration: TextDecoration.lineThrough,
+                      color: colors.onSurfaceVariant,
+                    )
+                  : null,
+            ),
+          );
+        }).toList(),
+      ),
+    );
+  }
+}
+
+class _DocCard extends StatelessWidget {
+  final ScannedDocument doc;
+  final DocumentCategory category;
+  final bool isHindi;
+  final VoidCallback onDelete;
+
+  const _DocCard({
+    required this.doc,
+    required this.category,
+    required this.isHindi,
+    required this.onDelete,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    final firstImage = doc.imagePaths.isNotEmpty ? doc.imagePaths.first : null;
+
+    return Card(
+      child: InkWell(
+        borderRadius: BorderRadius.circular(24),
+        onTap: () => _showDetail(context),
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Row(
+            children: [
+              if (firstImage != null)
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(10),
+                  child: Image.file(
+                    File(firstImage),
+                    width: 52,
+                    height: 52,
+                    fit: BoxFit.cover,
+                  ),
+                )
+              else
+                Container(
+                  width: 52,
+                  height: 52,
+                  decoration: BoxDecoration(
+                    color: colors.surfaceContainerHighest,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Icon(category.icon, color: colors.onSurfaceVariant),
+                ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      doc.label,
+                      style: const TextStyle(fontWeight: FontWeight.w600),
+                    ),
+                    Text(
+                      '${doc.imagePaths.length} ${isHindi ? "पन्ने" : "pages"}',
+                      style: TextStyle(fontSize: 12, color: colors.onSurfaceVariant),
+                    ),
+                  ],
+                ),
               ),
-            )
-            .toList(),
+              IconButton(
+                icon: const Icon(Icons.delete_outline),
+                tooltip: isHindi ? 'हटाएँ' : 'Delete',
+                onPressed: onDelete,
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
 
-  void _addDocument(
-    BuildContext context,
-    String Function(String, String) t,
-  ) {
-    final nameController = TextEditingController();
-
+  void _showDetail(BuildContext context) {
     showModalBottomSheet(
       context: context,
+      isScrollControlled: true,
       showDragHandle: true,
-      builder: (sheetContext) {
-        return SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.all(20),
-            child: Wrap(
-              children: [
-                Text(
-                  t('दस्तावेज़ जोड़ें', 'Add document'),
-                  style: Theme.of(sheetContext).textTheme.titleLarge,
-                ),
-                const SizedBox(height: 16),
-                TextField(
-                  controller: nameController,
-                  decoration: InputDecoration(
-                    labelText: t('दस्तावेज़ का नाम', 'Document name'),
-                    hintText: t('जैसे: पैन कार्ड', 'e.g. PAN card'),
-                  ),
-                ),
-                const SizedBox(height: 14),
-                FilledButton.icon(
-                  onPressed: () {
-                    final name = nameController.text.trim();
-                    if (name.isEmpty) return;
-
-                    setState(() {
-                      documents.putIfAbsent(selectedCategory, () => []);
-                      documents[selectedCategory]!.add(name);
-                    });
-                    _persist();
-
-                    Navigator.pop(sheetContext);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(t('दस्तावेज़ जोड़ा गया', 'Document added')),
-                      ),
-                    );
-                  },
-                  icon: const Icon(Icons.upload_file_outlined),
-                  label: Text(t('डेमो दस्तावेज़ जोड़ें', 'Add demo document')),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  t(
-                    'कैमरा और गैलरी से असली फ़ाइल जोड़ना अगले चरण में आएगा।',
-                    'Real camera and gallery upload will be added in the next stage.',
-                  ),
-                  style: Theme.of(sheetContext).textTheme.bodySmall,
-                ),
-              ],
+      builder: (ctx) => DraggableScrollableSheet(
+        initialChildSize: 0.7,
+        minChildSize: 0.4,
+        maxChildSize: 0.95,
+        expand: false,
+        builder: (_, scrollController) => ListView(
+          controller: scrollController,
+          padding: const EdgeInsets.all(16),
+          children: [
+            Text(
+              doc.label,
+              style: Theme.of(ctx).textTheme.titleLarge,
             ),
-          ),
-        );
-      },
+            const SizedBox(height: 4),
+            Text(
+              doc.scannedAt.toString().split('.').first,
+              style: TextStyle(
+                fontSize: 12,
+                color: Theme.of(ctx).colorScheme.onSurfaceVariant,
+              ),
+            ),
+            const SizedBox(height: 16),
+            ...doc.imagePaths.map(
+              (path) => Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(14),
+                  child: Image.file(File(path), fit: BoxFit.contain),
+                ),
+              ),
+            ),
+            if (doc.ocrText.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              Text(
+                isHindi ? 'पहचाना गया टेक्स्ट' : 'Recognized text',
+                style: Theme.of(ctx).textTheme.titleMedium,
+              ),
+              const SizedBox(height: 8),
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(12),
+                  child: SelectableText(
+                    doc.ocrText,
+                    style: Theme.of(ctx).textTheme.bodySmall,
+                  ),
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
     );
   }
 }
