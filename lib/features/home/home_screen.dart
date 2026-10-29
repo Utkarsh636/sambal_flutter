@@ -9,6 +9,7 @@ import '../help/faq_screen.dart';
 import '../help/helpline_screen.dart';
 import '../roadmap/roadmap_screen.dart';
 import '../settings/privacy_screen.dart';
+import '../settings/settings_screen.dart';
 import '../shell/shell_screen.dart';
 import 'preparation_screen.dart';
 
@@ -77,6 +78,13 @@ class _HomeScreenState extends State<HomeScreen>
             onPressed: controller.toggleLanguage,
           ),
           const ThemeToggleButton(),
+          IconButton(
+            icon: const Icon(Icons.settings_outlined),
+            tooltip: hindi ? 'सेटिंग' : 'Settings',
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const SettingsScreen()),
+            ),
+          ),
         ],
       ),
       body: ListView(

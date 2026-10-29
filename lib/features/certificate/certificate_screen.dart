@@ -113,11 +113,9 @@ class _CertificateScreenState extends State<CertificateScreen> {
       }
 
       setState(() {
+        _guide = _GuideInfo.offlineFallback(caseData);
+        _offline = true;
         _isLoading = false;
-        _error = _text(
-          'गाइड लोड नहीं हो सका। इंटरनेट और Sambal API जाँचें।',
-          'Could not load guide. Check your internet and Sambal API.',
-        );
       });
     }
   }
@@ -1019,6 +1017,62 @@ class _GuideInfo {
     required this.feeTiers,
     this.daysElapsed,
   });
+
+  factory _GuideInfo.offlineFallback(CaseData caseData) {
+    final days = DateTime.now().difference(caseData.deathDate).inDays;
+    final circumstance = caseData.circumstance.toLowerCase();
+
+    final checklist = <_DocumentItem>[
+      const _DocumentItem(name: 'आवेदन पत्र (फॉर्म 2)', nameEn: 'Application form (Form 2)', required: true, verified: true),
+      const _DocumentItem(name: 'सूचनादाता का पहचान पत्र', nameEn: "Informant's ID proof", required: true, verified: true, note: 'Aadhaar / Voter ID / Passport'),
+      const _DocumentItem(name: 'मृतक का पहचान पत्र', nameEn: "Deceased's ID proof", required: true, verified: true),
+      const _DocumentItem(name: 'मृतक के निवास का प्रमाण', nameEn: "Deceased's address proof", required: true, verified: true),
+    ];
+
+    if (circumstance == 'hospital') {
+      checklist.add(const _DocumentItem(name: 'मेडिकल सर्टिफिकेट (MCCD)', nameEn: 'Medical Certificate of Cause of Death (MCCD)', required: true, verified: true));
+      checklist.add(const _DocumentItem(name: 'अस्पताल डिस्चार्ज / मृत्यु सारांश', nameEn: 'Hospital discharge / death summary', required: true, verified: true));
+    } else if (circumstance == 'home') {
+      checklist.add(const _DocumentItem(name: 'परिवार के सदस्य का घोषणा पत्र', nameEn: 'Declaration from family member', required: true, verified: true));
+      checklist.add(const _DocumentItem(name: 'अंतिम संस्कार / दफ़न प्रमाण पत्र', nameEn: 'Cremation / burial certificate', required: true, verified: true));
+    } else if (circumstance == 'accident') {
+      checklist.add(const _DocumentItem(name: 'FIR की प्रति', nameEn: 'Copy of FIR', required: true, verified: true));
+      checklist.add(const _DocumentItem(name: 'पोस्टमार्टम रिपोर्ट', nameEn: 'Postmortem report', required: true, verified: true));
+      checklist.add(const _DocumentItem(name: 'पुलिस पंचनामा', nameEn: 'Police inquest report', required: true, verified: true));
+    }
+
+    if (days > 21) {
+      checklist.add(const _DocumentItem(name: 'सूचनादाता का शपथ पत्र', nameEn: 'Affidavit from informant', required: true, verified: true));
+    }
+    if (days > 30) {
+      checklist.add(const _DocumentItem(name: 'निर्धारित प्राधिकारी की अनुमति', nameEn: 'Permission from prescribed authority', required: true, verified: true));
+    }
+
+    final feeTiers = <_FeeTier>[
+      _FeeTier(label: '21 दिन के भीतर', labelEn: 'Within 21 days', amount: 'निःशुल्क', amountEn: 'Free', status: 'verified', applicable: days <= 21, authority: 'Registrar', authorityHi: 'पंजीयक'),
+      _FeeTier(label: '22–30 दिन', labelEn: '22–30 days', status: 'not-verified', applicable: days >= 22 && days <= 30, authority: 'Registrar with written permission', authorityHi: 'पंजीयक की लिखित अनुमति'),
+      _FeeTier(label: '31 दिन – 1 वर्ष', labelEn: '31 days – 1 year', status: 'not-verified', applicable: days >= 31 && days <= 365, authority: 'Prescribed authority (ADM/SDM)', authorityHi: 'निर्धारित प्राधिकारी (ADM/SDM)'),
+      _FeeTier(label: '1 वर्ष से अधिक', labelEn: 'After 1 year', status: 'not-verified', applicable: days > 365, authority: 'First Class Magistrate', authorityHi: 'प्रथम श्रेणी मजिस्ट्रेट'),
+    ];
+
+    final feeDisplay = days <= 21
+        ? '21 दिन के भीतर पंजीकरण निःशुल्क है (RBD Act 1969)।'
+        : 'फीस राज्य के अनुसार भिन्न — ऑफ़लाइन होने के कारण सटीक राशि उपलब्ध नहीं।';
+
+    return _GuideInfo(
+      routeLabel: 'ऑफ़लाइन — राज्य-विशिष्ट मार्ग उपलब्ध नहीं। सर्वर से कनेक्ट होने पर दिखेगा।',
+      portalUrl: '',
+      feeDisplay: feeDisplay,
+      feeStatus: days <= 21 ? 'verified' : 'not-verified',
+      documentsMessage: 'RBD Act 1969 के अनुसार। ऑफ़लाइन मोड — राष्ट्रीय नियम दिखाए जा रहे हैं।',
+      daysElapsed: days,
+      sources: const [
+        _GuideSource(title: 'Registration of Births and Deaths Act 1969', url: 'https://www.indiacode.nic.in/handle/123456789/1785'),
+      ],
+      checklist: checklist,
+      feeTiers: feeTiers,
+    );
+  }
 
   factory _GuideInfo.fromJson(Map<String, dynamic> json) {
     final route = Map<String, dynamic>.from(json['route'] as Map? ?? {});
