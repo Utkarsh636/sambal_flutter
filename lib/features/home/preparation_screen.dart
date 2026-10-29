@@ -156,6 +156,33 @@ class _PreparationScreenState extends State<PreparationScreen> {
               label: Text(_t('PDF पैक बनाएँ', 'Generate PDF pack')),
             ),
             if (_pdfFile != null) ...[
+              const SizedBox(height: 8),
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: Theme.of(context)
+                      .colorScheme
+                      .surfaceContainerHighest,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.info_outline,
+                        size: 16, color: colors.onSurfaceVariant),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        _t('PDF में दस्तावेज़ एन्क्रिप्टेड नहीं हैं। शेयर करने पर कोई भी देख सकता है।',
+                            'The PDF is not encrypted. Anyone you share it with can see the documents.'),
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: colors.onSurfaceVariant,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
               const SizedBox(height: 10),
               Row(
                 children: [

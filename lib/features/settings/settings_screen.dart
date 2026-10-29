@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:local_auth/local_auth.dart';
 
+import '../../core/notifications/notification_service.dart';
 import '../case/case_controller.dart';
 import '../case/location_setup_screen.dart';
 import '../help/about_screen.dart';
+import 'coverage_screen.dart';
 import 'privacy_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -197,6 +199,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
           Card(
             child: Column(
               children: [
+                ListTile(
+                  leading: const Icon(Icons.verified_outlined),
+                  title: Text(_t('सत्यापित कवरेज', 'Verified coverage')),
+                  subtitle: Text(_t('कौन से राज्य सत्यापित हैं',
+                      'Which states are verified')),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () => Navigator.of(context).push(
+                    MaterialPageRoute(
+                        builder: (_) => const CoverageScreen()),
+                  ),
+                ),
+                const Divider(height: 1, indent: 56),
                 ListTile(
                   leading: const Icon(Icons.shield_outlined),
                   title: Text(_t('गोपनीयता और डेटा', 'Privacy & Data')),
@@ -410,6 +424,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         circumstance: controller.data.circumstance,
         rites: controller.data.rites,
       );
+      NotificationService.scheduleDeadlineReminders(controller.data);
       setState(() {});
     }
   }

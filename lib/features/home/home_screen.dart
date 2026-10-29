@@ -9,6 +9,8 @@ import '../help/faq_screen.dart';
 import '../help/helpline_screen.dart';
 import '../roadmap/roadmap_screen.dart';
 import '../settings/privacy_screen.dart';
+import '../certificate/form_helper_screen.dart';
+import '../settings/coverage_screen.dart';
 import '../settings/settings_screen.dart';
 import '../shell/shell_screen.dart';
 import 'preparation_screen.dart';
@@ -239,6 +241,49 @@ class _HomeScreenState extends State<HomeScreen>
             ),
           )),
 
+          const SizedBox(height: 10),
+          stagger(Card(
+            child: InkWell(
+              borderRadius: BorderRadius.circular(24),
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute(
+                    builder: (_) => const FormHelperScreen()),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(20),
+                child: Row(
+                  children: [
+                    Icon(Icons.edit_document,
+                        size: 32, color: colors.primary),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            t('फॉर्म हेल्पर', 'Form helper'),
+                            style:
+                                Theme.of(context).textTheme.titleMedium,
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            t('अपने डेटा से भरे फ़ील्ड — कॉपी और पेस्ट करें',
+                                'Pre-filled fields from your data — copy & paste'),
+                            style: TextStyle(
+                                color: colors.onSurfaceVariant,
+                                fontSize: 13),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Icon(Icons.chevron_right,
+                        color: colors.onSurfaceVariant),
+                  ],
+                ),
+              ),
+            ),
+          )),
+
           // Scan documents CTA
           if (scannedDocs.isEmpty) ...[
             const SizedBox(height: 10),
@@ -347,6 +392,19 @@ class _HomeScreenState extends State<HomeScreen>
             onTap: () {
               Navigator.of(context).push(
                 MaterialPageRoute(builder: (_) => const PrivacyScreen()),
+              );
+            },
+          )),
+          stagger(ListTile(
+            leading: const Icon(Icons.verified_outlined),
+            title: Text(t('सत्यापित कवरेज', 'Verified coverage')),
+            subtitle: Text(t('कौन से राज्य सत्यापित हैं',
+                'Which states are verified')),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                    builder: (_) => const CoverageScreen()),
               );
             },
           )),

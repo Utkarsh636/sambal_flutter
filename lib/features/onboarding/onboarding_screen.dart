@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
 import '../../core/config/api_config.dart';
+import '../../core/notifications/notification_service.dart';
 import '../../core/storage/local_storage.dart';
 import '../case/case_controller.dart';
 import '../shell/shell_screen.dart';
@@ -240,6 +241,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       if (_pinEnabled && _pinController.text.length == 4) {
         await controller.setPin(_pinController.text);
       }
+
+      NotificationService.scheduleDeadlineReminders(controller.data);
 
       if (!mounted) return;
       Navigator.of(context).pushReplacement(

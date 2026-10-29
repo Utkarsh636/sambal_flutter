@@ -68,6 +68,16 @@ class ScannerService {
     if (await file.exists()) await file.delete();
   }
 
+  static Future<void> cleanupTempDecrypted() async {
+    final tmpDir = await getTemporaryDirectory();
+    final entries = tmpDir.listSync();
+    for (final entry in entries) {
+      if (entry is File && entry.path.contains('dec_')) {
+        await entry.delete();
+      }
+    }
+  }
+
   static Future<void> deleteAllScans() async {
     final dir = await getApplicationDocumentsDirectory();
     final scanDir = Directory('${dir.path}/scans');

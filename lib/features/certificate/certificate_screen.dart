@@ -6,9 +6,11 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/config/api_config.dart';
 import '../../core/storage/local_storage.dart';
+import '../../data/verified_rules.dart';
 import '../case/case_controller.dart';
 import '../case/location_setup_screen.dart';
 import '../home/preparation_screen.dart';
+import 'form_helper_screen.dart';
 import '../shell/shell_screen.dart';
 
 class CertificateScreen extends StatefulWidget {
@@ -336,6 +338,40 @@ class _CertificateScreenState extends State<CertificateScreen> {
                 'Choose from official location list',
               ),
             ),
+          ),
+          if (VerifiedStateData.isVerified(caseData.state)) ...[
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              decoration: BoxDecoration(
+                color: colors.primaryContainer,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.verified, size: 16, color: colors.primary),
+                  const SizedBox(width: 6),
+                  Text(
+                    _text('${caseData.state} — सत्यापित',
+                        '${caseData.state} — Verified'),
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: colors.onPrimaryContainer,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+          const SizedBox(height: 12),
+          OutlinedButton.icon(
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const FormHelperScreen()),
+            ),
+            icon: const Icon(Icons.edit_document, size: 18),
+            label: Text(_text('फॉर्म हेल्पर खोलें', 'Open form helper')),
           ),
           if (_error != null) ...[
             const SizedBox(height: 20),
