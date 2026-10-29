@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../case/case_controller.dart';
+import '../documents/scanner_service.dart';
+import '../onboarding/splash_screen.dart';
 
 class PinLockScreen extends StatefulWidget {
   final VoidCallback onUnlocked;
@@ -149,9 +151,52 @@ class _PinLockScreenState extends State<PinLockScreen>
             ],
             const Spacer(),
             _buildKeypad(colors),
-            const SizedBox(height: 32),
+            const SizedBox(height: 16),
+            TextButton(
+              onPressed: () => _forgotPin(context, controller),
+              child: Text(
+                _t('PIN भूल गए?', 'Forgot PIN?'),
+                style: TextStyle(color: colors.onSurfaceVariant, fontSize: 13),
+              ),
+            ),
+            const SizedBox(height: 16),
           ],
         ),
+      ),
+    );
+  }
+
+  void _forgotPin(BuildContext context, SambalController controller) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(_t('PIN रीसेट करें?', 'Reset PIN?')),
+        content: Text(_t(
+          'PIN रीसेट करने के लिए सभी डेटा मिटाना होगा। ऐप नए सिरे से शुरू होगा।',
+          'To reset your PIN, all data must be erased. The app will start fresh.',
+        )),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text(_t('रद्द', 'Cancel')),
+          ),
+          FilledButton(
+            onPressed: () async {
+              Navigator.pop(ctx);
+              await ScannerService.deleteAllScans();
+              await controller.clearAllData();
+              if (!context.mounted) return;
+              Navigator.of(context).pushAndRemoveUntil(
+                MaterialPageRoute(builder: (_) => const SplashScreen()),
+                (_) => false,
+              );
+            },
+            style: FilledButton.styleFrom(
+              backgroundColor: Theme.of(context).colorScheme.error,
+            ),
+            child: Text(_t('सब मिटाएँ और रीसेट करें', 'Erase all & reset')),
+          ),
+        ],
       ),
     );
   }

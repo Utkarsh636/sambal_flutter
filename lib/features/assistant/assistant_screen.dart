@@ -48,6 +48,7 @@ class _AssistantScreenState extends State<AssistantScreen> {
       t('मुझे कौन से कागज़ चाहिए?', 'What documents do I need?'),
       t('कितना शुल्क लगेगा?', 'What fee will I pay?'),
       t('मुझे कहाँ जाना है?', 'Where do I need to go?'),
+      t('21 दिन बीत गए तो क्या करें?', 'What if 21 days have passed?'),
     ];
 
     return Scaffold(

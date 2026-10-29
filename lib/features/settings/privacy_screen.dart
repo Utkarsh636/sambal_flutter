@@ -56,6 +56,13 @@ class PrivacyScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: 12),
                   _DataRow(
+                    icon: Icons.person_outline,
+                    label: t('नाम', 'Name'),
+                    value: controller.data.name.isNotEmpty
+                        ? controller.data.name
+                        : t('सेट नहीं', 'Not set'),
+                  ),
+                  _DataRow(
                     icon: Icons.location_on_outlined,
                     label: t('राज्य और जिला', 'State & district'),
                     value: controller.data.state.isNotEmpty

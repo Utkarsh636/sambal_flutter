@@ -308,7 +308,9 @@ class _RoadmapScreenState extends State<RoadmapScreen> {
         return SafeArea(
           child: Padding(
             padding: const EdgeInsets.all(20),
-            child: Wrap(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   hindi ? step.titleHi : step.titleEn,
@@ -328,18 +330,21 @@ class _RoadmapScreenState extends State<RoadmapScreen> {
                   ),
                 ),
                 const SizedBox(height: 12),
-                FilledButton(
-                  onPressed: complete
-                      ? null
-                      : () {
-                          setState(() => doneIds.add(step.id));
-                          LocalStorage.roadmapDoneIds = doneIds;
-                          Navigator.pop(sheetContext);
-                        },
-                  child: Text(
-                    complete
-                        ? t('यह कदम पूरा है', 'This step is complete')
-                        : t('यह कदम पूरा हुआ', 'Mark step as done'),
+                SizedBox(
+                  width: double.infinity,
+                  child: FilledButton(
+                    onPressed: complete
+                        ? null
+                        : () {
+                            setState(() => doneIds.add(step.id));
+                            LocalStorage.roadmapDoneIds = doneIds;
+                            Navigator.pop(sheetContext);
+                          },
+                    child: Text(
+                      complete
+                          ? t('यह कदम पूरा है', 'This step is complete')
+                          : t('यह कदम पूरा हुआ', 'Mark step as done'),
+                    ),
                   ),
                 ),
               ],
