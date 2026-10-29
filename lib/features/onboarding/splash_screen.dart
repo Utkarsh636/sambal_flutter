@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../../core/storage/local_storage.dart';
 import '../../core/theme/app_theme.dart';
 import '../auth/pin_lock_screen.dart';
+import '../case/case_controller.dart';
 import '../shell/shell_screen.dart';
 import 'onboarding_screen.dart';
 
@@ -36,10 +37,12 @@ class _SplashScreenState extends State<SplashScreen>
 
     if (!mounted) return;
 
+    final controller = SambalScope.of(context);
+
     Widget destination;
     if (!LocalStorage.hasCompletedOnboarding) {
       destination = const OnboardingScreen();
-    } else if (LocalStorage.hasPin) {
+    } else if (controller.hasPin) {
       destination = _PinGate(child: const ShellScreen());
     } else {
       destination = const ShellScreen();
@@ -167,8 +170,37 @@ class _PinGate extends StatefulWidget {
   State<_PinGate> createState() => _PinGateState();
 }
 
-class _PinGateState extends State<_PinGate> {
+class _PinGateState extends State<_PinGate> with WidgetsBindingObserver {
   bool _unlocked = false;
+  DateTime? _pausedAt;
+
+  static const _autoLockTimeout = Duration(minutes: 2);
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.paused) {
+      _pausedAt = DateTime.now();
+    } else if (state == AppLifecycleState.resumed && _unlocked) {
+      final paused = _pausedAt;
+      if (paused != null &&
+          DateTime.now().difference(paused) > _autoLockTimeout) {
+        setState(() => _unlocked = false);
+      }
+      _pausedAt = null;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {

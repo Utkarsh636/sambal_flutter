@@ -211,7 +211,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     return circumstance;
   }
 
-  void next() {
+  Future<void> next() async {
     if (step == 6 && _pinEnabled) {
       if (_pinController.text != _pinConfirmController.text) {
         setState(() => _pinError = t('PIN मेल नहीं खाता', 'PINs do not match'));
@@ -238,9 +238,10 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       );
 
       if (_pinEnabled && _pinController.text.length == 4) {
-        controller.setPin(_pinController.text);
+        await controller.setPin(_pinController.text);
       }
 
+      if (!mounted) return;
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(builder: (_) => const ShellScreen()),
       );

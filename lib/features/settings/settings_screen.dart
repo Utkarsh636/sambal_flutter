@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:local_auth/local_auth.dart';
 
 import '../case/case_controller.dart';
 import '../case/location_setup_screen.dart';
@@ -13,6 +14,23 @@ class SettingsScreen extends StatefulWidget {
 }
 
 class _SettingsScreenState extends State<SettingsScreen> {
+  bool _biometricHardware = false;
+  final _localAuth = LocalAuthentication();
+
+  @override
+  void initState() {
+    super.initState();
+    _checkBiometricHardware();
+  }
+
+  Future<void> _checkBiometricHardware() async {
+    try {
+      final canCheck = await _localAuth.canCheckBiometrics;
+      final supported = await _localAuth.isDeviceSupported();
+      if (mounted) setState(() => _biometricHardware = canCheck && supported);
+    } catch (_) {}
+  }
+
   String _t(String hi, String en) =>
       SambalScope.of(context).isHindi ? hi : en;
 
@@ -142,6 +160,35 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     onChanged: (_) => _togglePin(controller),
                   ),
                 ),
+                if (controller.hasPin && _biometricHardware) ...[
+                  const Divider(height: 1, indent: 56),
+                  ListTile(
+                    leading: const Icon(Icons.fingerprint),
+                    title: Text(_t('फ़िंगरप्रिंट / चेहरा', 'Fingerprint / Face')),
+                    subtitle: Text(controller.biometricEnabled
+                        ? _t('चालू', 'Enabled')
+                        : _t('बंद', 'Disabled')),
+                    trailing: Switch(
+                      value: controller.biometricEnabled,
+                      onChanged: (v) async {
+                        if (v) {
+                          final ok = await _localAuth.authenticate(
+                            localizedReason: _t(
+                              'बायोमेट्रिक चालू करने के लिए पहचान करें',
+                              'Authenticate to enable biometrics',
+                            ),
+                            options: const AuthenticationOptions(
+                              biometricOnly: true,
+                            ),
+                          );
+                          if (!ok) return;
+                        }
+                        await controller.setBiometricEnabled(v);
+                        if (mounted) setState(() {});
+                      },
+                    ),
+                  ),
+                ],
               ],
             ),
           ),
@@ -268,7 +315,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ),
       );
       if (confirm == true) {
-        controller.removePin();
+        await controller.removePin();
         if (mounted) setState(() {});
       }
     } else {
@@ -287,7 +334,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       pinController.dispose();
       confirmController.dispose();
       if (result != null && result.length == 4) {
-        controller.setPin(result);
+        await controller.setPin(result);
         if (mounted) setState(() {});
       }
     }

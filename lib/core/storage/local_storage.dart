@@ -56,17 +56,10 @@ class LocalStorage {
     );
   }
 
-  static bool get hasPin => _prefs.getString('appPin') != null;
-
-  static String? get pin => _prefs.getString('appPin');
-
-  static set pin(String? value) {
-    if (value != null) {
-      _prefs.setString('appPin', value);
-    }
+  static void migratePlaintextPin() {
+    _prefs.remove('appPin');
+    _prefs.remove('biometricEnabled');
   }
-
-  static void removePin() => _prefs.remove('appPin');
 
   static void cacheApiResponse(String key, String jsonBody) {
     _prefs.setString('cache_$key', jsonBody);

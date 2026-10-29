@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:local_auth/local_auth.dart';
 
+import '../../core/storage/platform_security.dart';
 import '../case/case_controller.dart';
 import '../documents/scanner_service.dart';
 import '../onboarding/splash_screen.dart';
@@ -19,7 +21,9 @@ class _PinLockScreenState extends State<PinLockScreen>
   final _digits = <int>[];
   String? _error;
   int _attempts = 0;
+  bool _biometricAvailable = false;
   late final AnimationController _shakeController;
+  final _localAuth = LocalAuthentication();
 
   String _t(String hi, String en) =>
       SambalScope.of(context).isHindi ? hi : en;
@@ -31,12 +35,45 @@ class _PinLockScreenState extends State<PinLockScreen>
       vsync: this,
       duration: const Duration(milliseconds: 400),
     );
+    PlatformSecurity.enableSecureFlag();
+    _tryBiometric();
   }
 
   @override
   void dispose() {
+    PlatformSecurity.disableSecureFlag();
     _shakeController.dispose();
     super.dispose();
+  }
+
+  Future<void> _tryBiometric() async {
+    try {
+      final controller = SambalScope.of(context);
+      if (!controller.biometricEnabled) return;
+
+      final canCheck = await _localAuth.canCheckBiometrics;
+      final isSupported = await _localAuth.isDeviceSupported();
+      if (!canCheck || !isSupported) return;
+
+      if (mounted) setState(() => _biometricAvailable = true);
+
+      final authenticated = await _localAuth.authenticate(
+        localizedReason: _t(
+          'Sambal खोलने के लिए पहचान करें',
+          'Authenticate to open Sambal',
+        ),
+        options: const AuthenticationOptions(
+          biometricOnly: true,
+          stickyAuth: true,
+        ),
+      );
+
+      if (authenticated && mounted) {
+        widget.onUnlocked();
+      }
+    } catch (_) {
+      // Biometric not available or failed — fall back to PIN
+    }
   }
 
   void _addDigit(int digit) {
@@ -61,10 +98,12 @@ class _PinLockScreenState extends State<PinLockScreen>
     });
   }
 
-  void _verify() {
+  Future<void> _verify() async {
     final pin = _digits.join();
     final controller = SambalScope.of(context);
-    if (controller.verifyPin(pin)) {
+    final ok = await controller.verifyPin(pin);
+    if (!mounted) return;
+    if (ok) {
       widget.onUnlocked();
     } else {
       _attempts++;
@@ -250,7 +289,13 @@ class _PinLockScreenState extends State<PinLockScreen>
             key('9', onTap: () => _addDigit(9)),
           ]),
           Row(children: [
-            key('', onTap: null),
+            if (_biometricAvailable)
+              key('',
+                  onTap: _tryBiometric,
+                  child: Icon(Icons.fingerprint,
+                      color: colors.primary, size: 30))
+            else
+              key('', onTap: null),
             key('0', onTap: () => _addDigit(0)),
             key('',
                 onTap: _removeDigit,

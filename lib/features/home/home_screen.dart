@@ -145,6 +145,10 @@ class _HomeScreenState extends State<HomeScreen>
             ),
           )),
 
+          const SizedBox(height: 12),
+
+          stagger(_DeadlineCards(data: data, t: t, colors: colors)),
+
           const SizedBox(height: 18),
 
           stagger(Text(
@@ -479,6 +483,173 @@ class _JourneyTracker extends StatelessWidget {
           textAlign: TextAlign.center,
         ),
       ],
+    );
+  }
+}
+
+class _Deadline {
+  final String label;
+  final int totalDays;
+  final int remaining;
+  final String source;
+
+  _Deadline({
+    required this.label,
+    required this.totalDays,
+    required this.remaining,
+    required this.source,
+  });
+
+  bool get overdue => remaining < 0;
+  bool get urgent => remaining >= 0 && remaining <= 3;
+}
+
+class _DeadlineCards extends StatelessWidget {
+  final CaseData data;
+  final String Function(String, String) t;
+  final ColorScheme colors;
+
+  const _DeadlineCards({
+    required this.data,
+    required this.t,
+    required this.colors,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final now = DateTime.now();
+    final daysSinceDeath = now.difference(data.deathDate).inDays;
+
+    final deadlines = <_Deadline>[
+      _Deadline(
+        label: t('निःशुल्क पंजीकरण', 'Free registration'),
+        totalDays: 21,
+        remaining: 21 - daysSinceDeath,
+        source: 'RBD Act 1969, §13',
+      ),
+      _Deadline(
+        label: t('SDM से देर से पंजीकरण', 'Late registration via SDM'),
+        totalDays: 30,
+        remaining: 30 - daysSinceDeath,
+        source: 'RBD Act 1969, §13(2)',
+      ),
+      _Deadline(
+        label: t('बैंक/बीमा दावा अवधि', 'Bank/insurance claim window'),
+        totalDays: 365,
+        remaining: 365 - daysSinceDeath,
+        source: 'IRDA guidelines',
+      ),
+    ];
+
+    final relevant =
+        deadlines.where((d) => d.remaining > -30).toList();
+
+    if (relevant.isEmpty) return const SizedBox.shrink();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          t('आने वाली समय सीमाएँ', 'Upcoming deadlines'),
+          style: Theme.of(context).textTheme.titleMedium,
+        ),
+        const SizedBox(height: 8),
+        ...relevant.map((d) => Padding(
+              padding: const EdgeInsets.only(bottom: 6),
+              child: _DeadlineTile(deadline: d, t: t, colors: colors),
+            )),
+        Padding(
+          padding: const EdgeInsets.only(top: 2),
+          child: Text(
+            t('स्रोत: RBD Act 1969 — सत्यापन लंबित',
+                'Source: RBD Act 1969 — Not verified'),
+            style: TextStyle(
+              fontSize: 11,
+              color: colors.onSurfaceVariant,
+              fontStyle: FontStyle.italic,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _DeadlineTile extends StatelessWidget {
+  final _Deadline deadline;
+  final String Function(String, String) t;
+  final ColorScheme colors;
+
+  const _DeadlineTile({
+    required this.deadline,
+    required this.t,
+    required this.colors,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final Color bgColor;
+    final Color fgColor;
+    final IconData icon;
+
+    if (deadline.overdue) {
+      bgColor = colors.errorContainer;
+      fgColor = colors.onErrorContainer;
+      icon = Icons.warning_amber_rounded;
+    } else if (deadline.urgent) {
+      bgColor = colors.errorContainer.withValues(alpha: 0.6);
+      fgColor = colors.onErrorContainer;
+      icon = Icons.schedule_rounded;
+    } else {
+      bgColor = colors.surfaceContainerHighest;
+      fgColor = colors.onSurface;
+      icon = Icons.event_outlined;
+    }
+
+    final daysText = deadline.overdue
+        ? t('${-deadline.remaining} दिन पहले बीत गया',
+            '${-deadline.remaining} days overdue')
+        : t('${deadline.remaining} दिन बाकी',
+            '${deadline.remaining} days left');
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, size: 20, color: fgColor),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  deadline.label,
+                  style: TextStyle(
+                    fontWeight: FontWeight.w600,
+                    color: fgColor,
+                    fontSize: 13,
+                  ),
+                ),
+                Text(
+                  daysText,
+                  style: TextStyle(fontSize: 12, color: fgColor),
+                ),
+              ],
+            ),
+          ),
+          Text(
+            deadline.source,
+            style: TextStyle(
+              fontSize: 10,
+              color: fgColor.withValues(alpha: 0.6),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

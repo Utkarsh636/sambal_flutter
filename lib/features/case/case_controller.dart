@@ -1,6 +1,7 @@
 import 'package:flutter/widgets.dart';
 
 import '../../core/storage/local_storage.dart';
+import '../../core/storage/secure_storage.dart';
 
 class CaseData {
   final String name;
@@ -29,11 +30,12 @@ class SambalController extends ChangeNotifier {
   bool isDarkMode = false;
   CaseData data = CaseData();
 
-  void loadFromStorage() {
+  Future<void> loadFromStorage() async {
     isHindi = LocalStorage.isHindi;
     isDarkMode = LocalStorage.isDarkMode;
     final saved = LocalStorage.loadCaseData();
     if (saved != null) data = saved;
+    await loadSecurityState();
   }
 
   void toggleLanguage() {
@@ -79,18 +81,45 @@ class SambalController extends ChangeNotifier {
     notifyListeners();
   }
 
-  bool get hasPin => LocalStorage.hasPin;
+  bool _hasPin = false;
+  bool _biometricEnabled = false;
 
-  void setPin(String pin) => LocalStorage.pin = pin;
+  bool get hasPin => _hasPin;
+  bool get biometricEnabled => _biometricEnabled;
 
-  bool verifyPin(String pin) => LocalStorage.pin == pin;
+  Future<void> loadSecurityState() async {
+    _hasPin = await SecureStorage.hasPin();
+    _biometricEnabled = await SecureStorage.isBiometricEnabled();
+  }
 
-  void removePin() => LocalStorage.removePin();
+  Future<void> setPin(String pin) async {
+    await SecureStorage.setPin(pin);
+    _hasPin = true;
+    notifyListeners();
+  }
+
+  Future<bool> verifyPin(String pin) => SecureStorage.verifyPin(pin);
+
+  Future<void> removePin() async {
+    await SecureStorage.removePin();
+    _hasPin = false;
+    _biometricEnabled = false;
+    notifyListeners();
+  }
+
+  Future<void> setBiometricEnabled(bool value) async {
+    await SecureStorage.setBiometricEnabled(value);
+    _biometricEnabled = value;
+    notifyListeners();
+  }
 
   Future<void> clearAllData() async {
     await LocalStorage.clearAll();
+    await SecureStorage.clearAll();
     isHindi = true;
     isDarkMode = false;
+    _hasPin = false;
+    _biometricEnabled = false;
     data = CaseData();
     notifyListeners();
   }

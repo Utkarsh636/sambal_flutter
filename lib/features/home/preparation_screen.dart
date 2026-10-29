@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/storage/local_storage.dart';
 import '../../core/theme/app_theme.dart';
@@ -188,10 +189,63 @@ class _PreparationScreenState extends State<PreparationScreen> {
             ),
           ],
 
+          const SizedBox(height: 20),
+          OutlinedButton.icon(
+            onPressed: () => _shareWhatsApp(data, checklist, hindi, days),
+            icon: const Icon(Icons.send_rounded),
+            label: Text(_t('WhatsApp पर चेकलिस्ट भेजें',
+                'Share checklist on WhatsApp')),
+          ),
+          const SizedBox(height: 10),
+          OutlinedButton.icon(
+            onPressed: () => _openOfficeFinder(data),
+            icon: const Icon(Icons.location_on_outlined),
+            label: Text(_t('नजदीकी पंजीकरण कार्यालय खोजें',
+                'Find nearest registration office')),
+          ),
           const SizedBox(height: 32),
         ],
       ),
     );
+  }
+
+  void _shareWhatsApp(
+    CaseData data,
+    List<_ChecklistItem> checklist,
+    bool hindi,
+    int days,
+  ) {
+    final buffer = StringBuffer();
+    buffer.writeln(hindi
+        ? '📋 *Sambal — मृत्यु प्रमाणपत्र चेकलिस्ट*'
+        : '📋 *Sambal — Death Certificate Checklist*');
+    buffer.writeln('');
+    buffer.writeln(hindi
+        ? 'राज्य: ${data.state} | जिला: ${data.district}'
+        : 'State: ${data.state} | District: ${data.district}');
+    buffer.writeln(hindi ? 'बीते दिन: $days' : 'Days elapsed: $days');
+    buffer.writeln('');
+
+    for (final item in checklist) {
+      final mark = item.done ? '✅' : '⬜';
+      buffer.writeln('$mark ${hindi ? item.hi : item.en}');
+    }
+
+    buffer.writeln('');
+    buffer.writeln(hindi
+        ? '_Sambal ऐप से बनाया गया — हर कदम पर साथ_'
+        : '_Made with Sambal — हर कदम पर साथ_');
+
+    final text = Uri.encodeComponent(buffer.toString());
+    launchUrl(Uri.parse('https://wa.me/?text=$text'),
+        mode: LaunchMode.externalApplication);
+  }
+
+  void _openOfficeFinder(CaseData data) {
+    final query = Uri.encodeComponent(
+        'death registration office ${data.district} ${data.state}');
+    launchUrl(Uri.parse('https://www.google.com/maps/search/$query'),
+        mode: LaunchMode.externalApplication);
   }
 
   List<_ChecklistItem> _buildChecklist(
