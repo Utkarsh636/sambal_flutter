@@ -1006,23 +1006,26 @@ class _FeeTierTile extends StatelessWidget {
                 ],
               ),
             ),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                Text(
-                  amount,
-                  style: TextStyle(
-                    fontWeight: FontWeight.w700,
-                    color: applicable ? colors.primary : colors.onSurface,
+            Flexible(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text(
+                    amount,
+                    textAlign: TextAlign.end,
+                    style: TextStyle(
+                      fontWeight: FontWeight.w700,
+                      color: applicable ? colors.primary : colors.onSurface,
+                    ),
                   ),
-                ),
-                if (verified)
-                  Icon(
-                    Icons.verified_outlined,
-                    size: 14,
-                    color: colors.primary,
-                  ),
+                  if (verified)
+                    Icon(
+                      Icons.verified_outlined,
+                      size: 14,
+                      color: colors.primary,
+                    ),
               ],
+              ),
             ),
           ],
         ),

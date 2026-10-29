@@ -695,11 +695,15 @@ class _DeadlineTile extends StatelessWidget {
               ],
             ),
           ),
-          Text(
-            deadline.source,
-            style: TextStyle(
-              fontSize: 10,
-              color: fgColor.withValues(alpha: 0.6),
+          Flexible(
+            flex: 0,
+            child: Text(
+              deadline.source,
+              textAlign: TextAlign.end,
+              style: TextStyle(
+                fontSize: 10,
+                color: fgColor.withValues(alpha: 0.6),
+              ),
             ),
           ),
         ],
