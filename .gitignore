@@ -46,3 +46,15 @@ app.*.map.json
 
 # Widget Preview related
 .widget_preview/
+
+# Signing
+android/key.properties
+*.jks
+*.keystore
+
+# Claude Code
+.claude/
+
+# Misc
+sambal
+.metadata
