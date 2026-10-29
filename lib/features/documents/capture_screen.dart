@@ -1,8 +1,7 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
 
 import '../case/case_controller.dart';
+import 'encrypted_image.dart';
 import 'scanner_service.dart';
 import 'scanned_document.dart';
 
@@ -166,8 +165,8 @@ class _CaptureScreenState extends State<CaptureScreen> {
                   borderRadius: BorderRadius.circular(12),
                   child: Stack(
                     children: [
-                      Image.file(
-                        File(_imagePaths[index]),
+                      EncryptedImage(
+                        path: _imagePaths[index],
                         width: 95,
                         height: 130,
                         fit: BoxFit.cover,

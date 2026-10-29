@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../../core/storage/local_storage.dart';
 import '../case/case_controller.dart';
 import 'capture_screen.dart';
+import 'encrypted_image.dart';
 import 'pdf_service.dart';
 import 'scanned_document.dart';
 
@@ -442,8 +443,8 @@ class _DocCard extends StatelessWidget {
               if (firstImage != null)
                 ClipRRect(
                   borderRadius: BorderRadius.circular(10),
-                  child: Image.file(
-                    File(firstImage),
+                  child: EncryptedImage(
+                    path: firstImage,
                     width: 52,
                     height: 52,
                     fit: BoxFit.cover,
@@ -519,7 +520,7 @@ class _DocCard extends StatelessWidget {
                 padding: const EdgeInsets.only(bottom: 12),
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(14),
-                  child: Image.file(File(path), fit: BoxFit.contain),
+                  child: EncryptedImage(path: path, fit: BoxFit.contain),
                 ),
               ),
             ),

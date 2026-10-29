@@ -1,8 +1,11 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:local_auth/local_auth.dart';
 
 import '../../core/storage/platform_security.dart';
+import '../../core/storage/secure_storage.dart';
 import '../case/case_controller.dart';
 import '../documents/scanner_service.dart';
 import '../onboarding/splash_screen.dart';
@@ -20,7 +23,9 @@ class _PinLockScreenState extends State<PinLockScreen>
     with SingleTickerProviderStateMixin {
   final _digits = <int>[];
   String? _error;
-  int _attempts = 0;
+  bool _locked = false;
+  Duration _lockRemaining = Duration.zero;
+  Timer? _lockTimer;
   bool _biometricAvailable = false;
   late final AnimationController _shakeController;
   final _localAuth = LocalAuthentication();
@@ -36,14 +41,40 @@ class _PinLockScreenState extends State<PinLockScreen>
       duration: const Duration(milliseconds: 400),
     );
     PlatformSecurity.enableSecureFlag();
+    _checkLockout();
     _tryBiometric();
   }
 
   @override
   void dispose() {
+    _lockTimer?.cancel();
     PlatformSecurity.disableSecureFlag();
     _shakeController.dispose();
     super.dispose();
+  }
+
+  Future<void> _checkLockout() async {
+    final remaining = await SecureStorage.getLockoutRemaining();
+    if (remaining != null && mounted) {
+      setState(() {
+        _locked = true;
+        _lockRemaining = remaining;
+      });
+      _startLockTimer();
+    }
+  }
+
+  void _startLockTimer() {
+    _lockTimer?.cancel();
+    _lockTimer = Timer.periodic(const Duration(seconds: 1), (_) {
+      final next = _lockRemaining - const Duration(seconds: 1);
+      if (next.isNegative || next == Duration.zero) {
+        _lockTimer?.cancel();
+        if (mounted) setState(() => _locked = false);
+      } else {
+        if (mounted) setState(() => _lockRemaining = next);
+      }
+    });
   }
 
   Future<void> _tryBiometric() async {
@@ -57,6 +88,9 @@ class _PinLockScreenState extends State<PinLockScreen>
 
       if (mounted) setState(() => _biometricAvailable = true);
 
+      final lockout = await SecureStorage.getLockoutRemaining();
+      if (lockout != null) return;
+
       final authenticated = await _localAuth.authenticate(
         localizedReason: _t(
           'Sambal खोलने के लिए पहचान करें',
@@ -69,15 +103,14 @@ class _PinLockScreenState extends State<PinLockScreen>
       );
 
       if (authenticated && mounted) {
+        await SecureStorage.resetAttempts();
         widget.onUnlocked();
       }
-    } catch (_) {
-      // Biometric not available or failed — fall back to PIN
-    }
+    } catch (_) {}
   }
 
   void _addDigit(int digit) {
-    if (_digits.length >= 4) return;
+    if (_locked || _digits.length >= 4) return;
     HapticFeedback.lightImpact();
     setState(() {
       _digits.add(digit);
@@ -104,18 +137,30 @@ class _PinLockScreenState extends State<PinLockScreen>
     final ok = await controller.verifyPin(pin);
     if (!mounted) return;
     if (ok) {
+      await SecureStorage.resetAttempts();
       widget.onUnlocked();
     } else {
-      _attempts++;
+      await SecureStorage.incrementAttempts();
       _shakeController.forward(from: 0);
       HapticFeedback.heavyImpact();
-      setState(() {
-        _digits.clear();
-        _error = _attempts >= 5
-            ? _t('बहुत प्रयास — थोड़ी देर बाद कोशिश करें',
-                'Too many attempts — try again later')
-            : _t('गलत PIN', 'Incorrect PIN');
-      });
+
+      final lockout = await SecureStorage.getLockoutRemaining();
+      if (!mounted) return;
+
+      if (lockout != null) {
+        setState(() {
+          _digits.clear();
+          _locked = true;
+          _lockRemaining = lockout;
+          _error = null;
+        });
+        _startLockTimer();
+      } else {
+        setState(() {
+          _digits.clear();
+          _error = _t('गलत PIN', 'Incorrect PIN');
+        });
+      }
     }
   }
 
@@ -181,7 +226,16 @@ class _PinLockScreenState extends State<PinLockScreen>
                 }),
               ),
             ),
-            if (_error != null) ...[
+            if (_locked) ...[
+              const SizedBox(height: 12),
+              Text(
+                _t(
+                  'लॉक — ${_lockRemaining.inMinutes}:${(_lockRemaining.inSeconds % 60).toString().padLeft(2, '0')} बाकी',
+                  'Locked — ${_lockRemaining.inMinutes}:${(_lockRemaining.inSeconds % 60).toString().padLeft(2, '0')} remaining',
+                ),
+                style: TextStyle(color: colors.error, fontSize: 13),
+              ),
+            ] else if (_error != null) ...[
               const SizedBox(height: 12),
               Text(
                 _error!,
@@ -249,7 +303,7 @@ class _PinLockScreenState extends State<PinLockScreen>
             color: Colors.transparent,
             child: InkWell(
               borderRadius: BorderRadius.circular(40),
-              onTap: _attempts >= 5 ? null : onTap,
+              onTap: _locked ? null : onTap,
               child: Container(
                 height: 64,
                 alignment: Alignment.center,

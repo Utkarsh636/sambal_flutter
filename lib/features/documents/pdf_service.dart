@@ -5,6 +5,7 @@ import 'package:pdf/widgets.dart' as pw;
 import 'package:path_provider/path_provider.dart';
 import 'package:printing/printing.dart';
 
+import '../../core/storage/file_crypto.dart';
 import '../case/case_controller.dart';
 import 'scanned_document.dart';
 
@@ -75,7 +76,7 @@ class PdfService {
       for (final imagePath in doc.imagePaths) {
         final file = File(imagePath);
         if (!file.existsSync()) continue;
-        final bytes = await file.readAsBytes();
+        final bytes = await FileCrypto.decryptFile(imagePath);
 
         pdf.addPage(
           pw.Page(

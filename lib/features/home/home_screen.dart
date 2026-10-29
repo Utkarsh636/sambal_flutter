@@ -522,23 +522,19 @@ class _DeadlineCards extends StatelessWidget {
 
     final deadlines = <_Deadline>[
       _Deadline(
-        label: t('निःशुल्क पंजीकरण', 'Free registration'),
+        label: t('निःशुल्क पंजीकरण अवधि', 'Free registration period'),
         totalDays: 21,
         remaining: 21 - daysSinceDeath,
-        source: 'RBD Act 1969, §13',
+        source: 'RBD Act 1969, §13(1)',
       ),
-      _Deadline(
-        label: t('SDM से देर से पंजीकरण', 'Late registration via SDM'),
-        totalDays: 30,
-        remaining: 30 - daysSinceDeath,
-        source: 'RBD Act 1969, §13(2)',
-      ),
-      _Deadline(
-        label: t('बैंक/बीमा दावा अवधि', 'Bank/insurance claim window'),
-        totalDays: 365,
-        remaining: 365 - daysSinceDeath,
-        source: 'IRDA guidelines',
-      ),
+      if (daysSinceDeath > 21)
+        _Deadline(
+          label: t('विलंबित पंजीकरण — शुल्क लग सकता है',
+              'Delayed registration — fee may apply'),
+          totalDays: 365,
+          remaining: 365 - daysSinceDeath,
+          source: 'RBD Act 1969, §13(2)–(3)',
+        ),
     ];
 
     final relevant =
@@ -561,8 +557,8 @@ class _DeadlineCards extends StatelessWidget {
         Padding(
           padding: const EdgeInsets.only(top: 2),
           child: Text(
-            t('स्रोत: RBD Act 1969 — सत्यापन लंबित',
-                'Source: RBD Act 1969 — Not verified'),
+            t('राष्ट्रीय नियम — राज्य-विशिष्ट अवधि भिन्न हो सकती है। सत्यापन लंबित।',
+                'National rules — state-specific periods may differ. Not verified.'),
             style: TextStyle(
               fontSize: 11,
               color: colors.onSurfaceVariant,
