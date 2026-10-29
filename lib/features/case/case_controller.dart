@@ -3,6 +3,7 @@ import 'package:flutter/widgets.dart';
 import '../../core/storage/local_storage.dart';
 
 class CaseData {
+  final String name;
   final String relation;
   final bool onBehalf;
   final DateTime deathDate;
@@ -12,6 +13,7 @@ class CaseData {
   final String rites;
 
   CaseData({
+    this.name = '',
     this.relation = '',
     this.onBehalf = false,
     DateTime? deathDate,
@@ -53,6 +55,7 @@ class SambalController extends ChangeNotifier {
   }
 
   void saveSetup({
+    String? name,
     required String relation,
     required bool onBehalf,
     required DateTime deathDate,
@@ -62,6 +65,7 @@ class SambalController extends ChangeNotifier {
     required String rites,
   }) {
     data = CaseData(
+      name: name ?? data.name,
       relation: relation,
       onBehalf: onBehalf,
       deathDate: deathDate,
@@ -74,6 +78,14 @@ class SambalController extends ChangeNotifier {
     LocalStorage.hasCompletedOnboarding = true;
     notifyListeners();
   }
+
+  bool get hasPin => LocalStorage.hasPin;
+
+  void setPin(String pin) => LocalStorage.pin = pin;
+
+  bool verifyPin(String pin) => LocalStorage.pin == pin;
+
+  void removePin() => LocalStorage.removePin();
 
   Future<void> clearAllData() async {
     await LocalStorage.clearAll();

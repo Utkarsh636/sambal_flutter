@@ -91,7 +91,10 @@ class _HomeScreenState extends State<HomeScreen>
         padding: const EdgeInsets.all(20),
         children: [
           stagger(Text(
-            t('आज एक ही कदम लें', 'Take one step today'),
+            data.name.isNotEmpty
+                ? t('${data.name}, आज एक ही कदम लें',
+                    '${data.name}, take one step today')
+                : t('आज एक ही कदम लें', 'Take one step today'),
             style: Theme.of(context).textTheme.headlineSmall,
           )),
           const SizedBox(height: 14),

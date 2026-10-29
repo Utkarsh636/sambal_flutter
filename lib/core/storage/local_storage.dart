@@ -28,6 +28,7 @@ class LocalStorage {
 
   static void saveCaseData(CaseData data) {
     _prefs.setString('caseData', jsonEncode({
+      'name': data.name,
       'relation': data.relation,
       'onBehalf': data.onBehalf,
       'deathDate': data.deathDate.toIso8601String(),
@@ -44,6 +45,7 @@ class LocalStorage {
 
     final json = jsonDecode(raw) as Map<String, dynamic>;
     return CaseData(
+      name: json['name'] as String? ?? '',
       relation: json['relation'] as String? ?? '',
       onBehalf: json['onBehalf'] as bool? ?? false,
       deathDate: DateTime.tryParse(json['deathDate'] as String? ?? ''),
@@ -53,6 +55,18 @@ class LocalStorage {
       rites: json['rites'] as String? ?? '',
     );
   }
+
+  static bool get hasPin => _prefs.getString('appPin') != null;
+
+  static String? get pin => _prefs.getString('appPin');
+
+  static set pin(String? value) {
+    if (value != null) {
+      _prefs.setString('appPin', value);
+    }
+  }
+
+  static void removePin() => _prefs.remove('appPin');
 
   static void cacheApiResponse(String key, String jsonBody) {
     _prefs.setString('cache_$key', jsonBody);

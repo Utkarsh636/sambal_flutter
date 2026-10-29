@@ -17,6 +17,9 @@ class OnboardingScreen extends StatefulWidget {
 
 class _OnboardingScreenState extends State<OnboardingScreen> {
   final pageController = PageController();
+  final _nameController = TextEditingController();
+  final _pinController = TextEditingController();
+  final _pinConfirmController = TextEditingController();
   final _otherRelationController = TextEditingController();
   final _otherCircumstanceController = TextEditingController();
 
@@ -28,6 +31,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   String district = '';
   String circumstance = '';
   String rites = '';
+  bool _pinEnabled = false;
+  String? _pinError;
 
   List<_StateOption> _states = [];
   List<_DistrictOption> _districts = [];
@@ -48,6 +53,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   @override
   void dispose() {
     pageController.dispose();
+    _nameController.dispose();
+    _pinController.dispose();
+    _pinConfirmController.dispose();
     _otherRelationController.dispose();
     _otherCircumstanceController.dispose();
     super.dispose();
@@ -166,18 +174,24 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   bool get _canContinue {
     switch (step) {
       case 1:
+        return _nameController.text.trim().isNotEmpty;
+      case 2:
         if (relation == 'other') {
           return _otherRelationController.text.trim().isNotEmpty;
         }
         return relation.isNotEmpty;
-      case 3:
-        return stateName.isNotEmpty && district.isNotEmpty;
       case 4:
+        return stateName.isNotEmpty && district.isNotEmpty;
+      case 5:
         if (circumstance == 'other') {
           return _otherCircumstanceController.text.trim().isNotEmpty &&
               rites.isNotEmpty;
         }
         return circumstance.isNotEmpty && rites.isNotEmpty;
+      case 6:
+        if (!_pinEnabled) return true;
+        return _pinController.text.length == 4 &&
+            _pinConfirmController.text.length == 4;
       default:
         return true;
     }
@@ -198,8 +212,22 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   }
 
   void next() {
-    if (step == 5) {
-      SambalScope.of(context).saveSetup(
+    if (step == 6 && _pinEnabled) {
+      if (_pinController.text != _pinConfirmController.text) {
+        setState(() => _pinError = t('PIN मेल नहीं खाता', 'PINs do not match'));
+        return;
+      }
+      if (_pinController.text.length != 4) {
+        setState(() => _pinError = t('4 अंक डालें', 'Enter 4 digits'));
+        return;
+      }
+      setState(() => _pinError = null);
+    }
+
+    if (step == 7) {
+      final controller = SambalScope.of(context);
+      controller.saveSetup(
+        name: _nameController.text.trim(),
         relation: _finalRelation,
         onBehalf: onBehalf,
         deathDate: deathDate,
@@ -208,6 +236,10 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         circumstance: _finalCircumstance,
         rites: rites,
       );
+
+      if (_pinEnabled && _pinController.text.length == 4) {
+        controller.setPin(_pinController.text);
+      }
 
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(builder: (_) => const ShellScreen()),
@@ -236,10 +268,12 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   Widget build(BuildContext context) {
     final pages = [
       welcomePage(),
+      profilePage(),
       relationPage(),
       datePage(),
       placePage(),
       circumstancePage(),
+      pinSetupPage(),
       privacyPage(),
     ];
 
@@ -290,7 +324,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                       ),
                       onPressed: _canContinue ? next : null,
                       child: Text(
-                        step == 5
+                        step == 7
                             ? t('मेरा केस बनाएँ', 'Create my case')
                             : t('आगे बढ़ें', 'Continue'),
                       ),
@@ -419,6 +453,52 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  Widget profilePage() {
+    return page(
+      title: t('आपका नाम क्या है?', 'What is your name?'),
+      subtitle: t(
+        'यह सिर्फ़ ऐप में दिखेगा — कहीं भेजा नहीं जाएगा।',
+        'This is shown only in the app — never sent anywhere.',
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          TextField(
+            controller: _nameController,
+            textCapitalization: TextCapitalization.words,
+            decoration: InputDecoration(
+              labelText: t('पूरा नाम', 'Full name'),
+              hintText: t('जैसे — राहुल शर्मा', 'e.g. Rahul Sharma'),
+              prefixIcon: const Icon(Icons.person_outline),
+            ),
+            onChanged: (_) => setState(() {}),
+          ),
+          const SizedBox(height: 16),
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(14),
+              child: Row(
+                children: [
+                  Icon(Icons.shield_outlined,
+                      size: 20,
+                      color: Theme.of(context).colorScheme.primary),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      t('आपका नाम सिर्फ़ आपके फ़ोन पर रहता है।',
+                          'Your name stays only on your phone.'),
+                      style: const TextStyle(fontSize: 13),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -676,6 +756,87 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             t('नहीं / पक्का नहीं', 'No / not sure'),
             rites == 'no',
             () => setState(() => rites = 'no'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget pinSetupPage() {
+    final colors = Theme.of(context).colorScheme;
+    return page(
+      title: t('ऐप लॉक सेट करें', 'Set app lock'),
+      subtitle: t(
+        'अपने डेटा को सुरक्षित रखने के लिए 4 अंकों का PIN बनाएँ।',
+        'Create a 4-digit PIN to keep your data secure.',
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SwitchListTile(
+            contentPadding: EdgeInsets.zero,
+            value: _pinEnabled,
+            onChanged: (value) => setState(() {
+              _pinEnabled = value;
+              if (!value) {
+                _pinController.clear();
+                _pinConfirmController.clear();
+                _pinError = null;
+              }
+            }),
+            title: Text(t('PIN लॉक चालू करें', 'Enable PIN lock')),
+            subtitle: Text(t(
+              'ऐप खोलने पर हर बार PIN माँगा जाएगा',
+              'PIN will be required every time you open the app',
+            )),
+          ),
+          if (_pinEnabled) ...[
+            const SizedBox(height: 20),
+            TextField(
+              controller: _pinController,
+              keyboardType: TextInputType.number,
+              maxLength: 4,
+              obscureText: true,
+              decoration: InputDecoration(
+                labelText: t('4 अंकों का PIN', '4-digit PIN'),
+                prefixIcon: const Icon(Icons.lock_outline),
+                counterText: '',
+              ),
+              onChanged: (_) => setState(() => _pinError = null),
+            ),
+            const SizedBox(height: 14),
+            TextField(
+              controller: _pinConfirmController,
+              keyboardType: TextInputType.number,
+              maxLength: 4,
+              obscureText: true,
+              decoration: InputDecoration(
+                labelText: t('PIN दोबारा डालें', 'Confirm PIN'),
+                prefixIcon: const Icon(Icons.lock_outline),
+                counterText: '',
+                errorText: _pinError,
+              ),
+              onChanged: (_) => setState(() => _pinError = null),
+            ),
+          ],
+          const SizedBox(height: 16),
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(14),
+              child: Row(
+                children: [
+                  Icon(Icons.info_outline, size: 20, color: colors.primary),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      t('PIN भूलने पर आप सेटिंग से डेटा मिटाकर नया शुरू कर सकते हैं।',
+                          'If you forget the PIN, you can clear data from settings and start fresh.'),
+                      style: const TextStyle(fontSize: 13),
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ),
         ],
       ),

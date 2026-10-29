@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../../core/storage/local_storage.dart';
 import '../../core/theme/app_theme.dart';
+import '../auth/pin_lock_screen.dart';
 import '../shell/shell_screen.dart';
 import 'onboarding_screen.dart';
 
@@ -35,9 +36,14 @@ class _SplashScreenState extends State<SplashScreen>
 
     if (!mounted) return;
 
-    final destination = LocalStorage.hasCompletedOnboarding
-        ? const ShellScreen()
-        : const OnboardingScreen();
+    Widget destination;
+    if (!LocalStorage.hasCompletedOnboarding) {
+      destination = const OnboardingScreen();
+    } else if (LocalStorage.hasPin) {
+      destination = _PinGate(child: const ShellScreen());
+    } else {
+      destination = const ShellScreen();
+    }
 
     Navigator.of(context).pushReplacement(
       PageRouteBuilder(
@@ -148,6 +154,27 @@ class _SplashScreenState extends State<SplashScreen>
           ),
         ),
       ),
+    );
+  }
+}
+
+class _PinGate extends StatefulWidget {
+  final Widget child;
+
+  const _PinGate({required this.child});
+
+  @override
+  State<_PinGate> createState() => _PinGateState();
+}
+
+class _PinGateState extends State<_PinGate> {
+  bool _unlocked = false;
+
+  @override
+  Widget build(BuildContext context) {
+    if (_unlocked) return widget.child;
+    return PinLockScreen(
+      onUnlocked: () => setState(() => _unlocked = true),
     );
   }
 }
