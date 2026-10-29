@@ -8,6 +8,8 @@ import '../../core/config/api_config.dart';
 import '../../core/storage/local_storage.dart';
 import '../case/case_controller.dart';
 import '../case/location_setup_screen.dart';
+import '../home/preparation_screen.dart';
+import '../shell/shell_screen.dart';
 
 class CertificateScreen extends StatefulWidget {
   const CertificateScreen({super.key});
@@ -17,13 +19,20 @@ class CertificateScreen extends StatefulWidget {
 }
 
 class _CertificateScreenState extends State<CertificateScreen> {
-  final PageController _pageController = PageController();
+  late final PageController _pageController;
   int _step = 0;
   bool _loaded = false;
   bool _isLoading = true;
   bool _offline = false;
   String? _error;
   _GuideInfo? _guide;
+
+  @override
+  void initState() {
+    super.initState();
+    _step = LocalStorage.certificateGuideStep.clamp(0, 5);
+    _pageController = PageController(initialPage: _step);
+  }
 
   String _text(String hindi, String english) {
     return SambalScope.of(context).isHindi ? hindi : english;
@@ -115,6 +124,7 @@ class _CertificateScreenState extends State<CertificateScreen> {
 
   void _goToStep(int step) {
     setState(() => _step = step);
+    LocalStorage.certificateGuideStep = step;
 
     _pageController.animateToPage(
       step,
@@ -153,9 +163,9 @@ class _CertificateScreenState extends State<CertificateScreen> {
             child: Column(
               children: [
                 Semantics(
-                  label: 'Step ${_step + 1} of 5',
+                  label: 'Step ${_step + 1} of 6',
                   child: LinearProgressIndicator(
-                    value: (_step + 1) / 5,
+                    value: (_step + 1) / 6,
                     minHeight: 7,
                     borderRadius: BorderRadius.circular(20),
                   ),
@@ -165,14 +175,11 @@ class _CertificateScreenState extends State<CertificateScreen> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     const _StepLabel(number: '1', hindi: 'शुरू', english: 'Start'),
-                    _StepLabel(
-                      number: '2',
-                      hindi: 'दस्तावेज़',
-                      english: 'Documents',
-                    ),
-                    _StepLabel(number: '3', hindi: 'फीस', english: 'Fees'),
-                    _StepLabel(number: '4', hindi: 'कहाँ', english: 'Where'),
-                    _StepLabel(number: '5', hindi: 'पोर्टल', english: 'Portal'),
+                    const _StepLabel(number: '2', hindi: 'दस्तावेज़', english: 'Docs'),
+                    const _StepLabel(number: '3', hindi: 'फीस', english: 'Fees'),
+                    const _StepLabel(number: '4', hindi: 'कहाँ', english: 'Where'),
+                    const _StepLabel(number: '5', hindi: 'पोर्टल', english: 'Portal'),
+                    const _StepLabel(number: '6', hindi: 'अगला', english: 'Next'),
                   ],
                 ),
               ],
@@ -207,6 +214,7 @@ class _CertificateScreenState extends State<CertificateScreen> {
                       _buildFeesPage(colors),
                       _buildWherePage(colors),
                       _buildPortalPage(colors),
+                      _buildNextStepsPage(colors),
                     ],
                   ),
           ),
@@ -237,18 +245,20 @@ class _CertificateScreenState extends State<CertificateScreen> {
                   const SizedBox(width: 12),
                   Expanded(
                     child: FilledButton(
-                      onPressed: () {
-                        if (_step == 4) {
-                          _openUrl(_guide?.portalUrl ?? '');
-                        } else {
-                          _goToStep(_step + 1);
-                        }
-                      },
+                      onPressed: _step == 5
+                          ? null
+                          : () {
+                              if (_step == 4) {
+                                _openUrl(_guide?.portalUrl ?? '');
+                              }
+                              _goToStep(_step + 1);
+                            },
                       child: Text(
                         _step == 4
-                            ? _text(
-                                'ऑफिशियल पोर्टल खोलें', 'Open official portal')
-                            : _text('अगला', 'Next'),
+                            ? _text('पोर्टल → अगला', 'Portal → Next')
+                            : _step == 5
+                                ? _text('पूरा', 'Complete')
+                                : _text('अगला', 'Next'),
                       ),
                     ),
                   ),
@@ -568,6 +578,115 @@ class _CertificateScreenState extends State<CertificateScreen> {
               ),
             ),
           ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildNextStepsPage(ColorScheme colors) {
+    final certReceived = LocalStorage.certificateReceived;
+
+    return _GuideCard(
+      icon: Icons.rocket_launch_outlined,
+      title: _text('अगले कदम', 'Next steps'),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            _text(
+              'आपने प्रमाणपत्र गाइड पूरा किया! अब ये कदम उठाएँ:',
+              'You completed the certificate guide! Now take these steps:',
+            ),
+          ),
+          const SizedBox(height: 20),
+          Card(
+            color: certReceived
+                ? colors.primaryContainer
+                : colors.surfaceContainerHighest,
+            child: ListTile(
+              leading: Icon(
+                certReceived
+                    ? Icons.check_circle_rounded
+                    : Icons.pending_actions_rounded,
+                color: certReceived
+                    ? colors.primary
+                    : colors.onSurfaceVariant,
+              ),
+              title: Text(
+                _text(
+                  'मृत्यु प्रमाणपत्र प्राप्त हुआ?',
+                  'Death certificate received?',
+                ),
+              ),
+              subtitle: Text(
+                certReceived
+                    ? _text('हाँ, प्राप्त हुआ', 'Yes, received')
+                    : _text('अभी नहीं मिला', 'Not yet'),
+              ),
+              trailing: Switch(
+                value: certReceived,
+                onChanged: (value) {
+                  setState(() {
+                    LocalStorage.certificateReceived = value;
+                  });
+                },
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          Card(
+            child: ListTile(
+              leading: const Icon(Icons.document_scanner_outlined),
+              title: Text(_text('दस्तावेज़ स्कैन करें', 'Scan your documents')),
+              subtitle: Text(_text(
+                'ज़रूरी कागज़ात की तस्वीर लें और OCR से पहचानें',
+                'Photograph required papers and OCR-detect text',
+              )),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () {
+                final shell =
+                    context.findAncestorStateOfType<ShellScreenState>();
+                if (shell != null) {
+                  shell.switchTab(2);
+                  Navigator.of(context).popUntil((r) => r.isFirst);
+                }
+              },
+            ),
+          ),
+          const SizedBox(height: 12),
+          Card(
+            child: ListTile(
+              leading: const Icon(Icons.assignment_outlined),
+              title: Text(_text('तैयारी पैक देखें', 'View preparation pack')),
+              subtitle: Text(_text(
+                'चेकलिस्ट, PDF बनाएँ और प्रिंट करें',
+                'Checklist, generate PDF and print',
+              )),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => const PreparationScreen(),
+                  ),
+                );
+              },
+            ),
+          ),
+          const SizedBox(height: 12),
+          Card(
+            child: ListTile(
+              leading: const Icon(Icons.route_outlined),
+              title: Text(_text('दावों का रोडमैप', 'Claims roadmap')),
+              subtitle: Text(_text(
+                'बैंक, बीमा, EPF और अन्य दावे',
+                'Bank, insurance, EPF and other claims',
+              )),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () {
+                Navigator.of(context).popUntil((r) => r.isFirst);
+              },
+            ),
+          ),
         ],
       ),
     );

@@ -92,7 +92,7 @@ class _CaptureScreenState extends State<CaptureScreen> {
     }
   }
 
-  void _save() {
+  Future<void> _save() async {
     if (_imagePaths.isEmpty) return;
     final label = _labelController.text.trim();
     if (label.isEmpty) {
@@ -101,6 +101,29 @@ class _CaptureScreenState extends State<CaptureScreen> {
       );
       return;
     }
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(_t('दस्तावेज़ सही है?', 'Is this document correct?')),
+        content: Text(_t(
+          'कृपया पुष्टि करें कि "$label" का स्कैन स्पष्ट और सही है। Sambal किसी दस्तावेज़ को स्वतः स्वीकृत नहीं करता।',
+          'Please confirm that the scan of "$label" is clear and correct. Sambal does not auto-accept any document.',
+        )),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text(_t('वापस जाएँ', 'Go back')),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text(_t('पुष्टि करें', 'Confirm')),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true || !mounted) return;
 
     final doc = ScannedDocument(
       id: DateTime.now().millisecondsSinceEpoch.toString(),

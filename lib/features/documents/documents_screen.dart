@@ -322,49 +322,93 @@ class _DocumentsScreenState extends State<DocumentsScreen> {
   ) {
     final caseData = SambalScope.of(context).data;
     final circumstance = caseData.circumstance.toLowerCase();
+    final days = DateTime.now().difference(caseData.deathDate).inDays;
     final colors = Theme.of(context).colorScheme;
 
-    final needed = <({String hi, String en})>[];
-    needed.add((hi: 'मृत्यु प्रमाणपत्र की प्रति', en: 'Copy of death certificate'));
-    needed.add((hi: 'सूचनादाता का पहचान पत्र', en: "Informant's ID proof"));
-    needed.add((hi: 'मृतक का पहचान पत्र', en: "Deceased's ID proof"));
+    final needed = <({String hi, String en, String category, bool required})>[];
+
+    needed.add((hi: 'आवेदन पत्र (फॉर्म 2)', en: 'Application form (Form 2)', category: 'other', required: true));
+    needed.add((hi: 'सूचनादाता का पहचान पत्र', en: "Informant's ID proof", category: 'id', required: true));
+    needed.add((hi: 'मृतक का पहचान पत्र', en: "Deceased's ID proof", category: 'id', required: true));
+    needed.add((hi: 'मृतक के निवास का प्रमाण', en: "Deceased's address proof", category: 'id', required: true));
 
     if (circumstance == 'hospital') {
-      needed.add((hi: 'अस्पताल का मृत्यु-कारण प्रमाणपत्र (MCCD)', en: 'Medical Certificate of Cause of Death (MCCD)'));
-      needed.add((hi: 'अस्पताल डिस्चार्ज सारांश', en: 'Hospital discharge summary'));
+      needed.add((hi: 'मेडिकल सर्टिफिकेट (MCCD)', en: 'Medical Certificate of Cause of Death (MCCD)', category: 'certificate', required: true));
+      needed.add((hi: 'अस्पताल डिस्चार्ज / मृत्यु सारांश', en: 'Hospital discharge / death summary', category: 'certificate', required: true));
     } else if (circumstance == 'home') {
-      needed.add((hi: 'परिवार के सदस्य का घोषणा पत्र', en: 'Declaration from family member'));
-      needed.add((hi: 'अंतिम संस्कार प्रमाण पत्र', en: 'Cremation / burial certificate'));
+      needed.add((hi: 'परिवार के सदस्य का घोषणा पत्र', en: 'Declaration from family member', category: 'other', required: true));
+      needed.add((hi: 'अंतिम संस्कार / दफ़न प्रमाण पत्र', en: 'Cremation / burial certificate', category: 'other', required: true));
     } else if (circumstance == 'accident') {
-      needed.add((hi: 'FIR की प्रति', en: 'Copy of FIR'));
-      needed.add((hi: 'पोस्टमार्टम रिपोर्ट', en: 'Postmortem report'));
+      needed.add((hi: 'FIR की प्रति', en: 'Copy of FIR', category: 'other', required: true));
+      needed.add((hi: 'पोस्टमार्टम रिपोर्ट', en: 'Postmortem report', category: 'certificate', required: true));
+      needed.add((hi: 'पुलिस पंचनामा', en: 'Police inquest report', category: 'other', required: true));
+    }
+
+    if (days > 21) {
+      needed.add((hi: 'सूचनादाता का शपथ पत्र', en: 'Affidavit from informant', category: 'other', required: true));
+    }
+    if (days > 30) {
+      needed.add((hi: 'निर्धारित प्राधिकारी की अनुमति', en: 'Permission from prescribed authority', category: 'other', required: true));
+    }
+    if (days > 365) {
+      needed.add((hi: 'प्रथम श्रेणी मजिस्ट्रेट का आदेश', en: 'Order from First Class Magistrate', category: 'other', required: true));
     }
 
     final scannedLabels = _docs.map((d) => d.label.toLowerCase()).toSet();
 
-    return Card(
-      child: Column(
-        children: needed.map((item) {
-          final matched = scannedLabels.any((l) =>
-              l.contains(item.en.toLowerCase().split(' ').first) ||
-              l.contains(item.hi.split(' ').first));
-          return ListTile(
-            leading: Icon(
-              matched ? Icons.check_circle_outline : Icons.pending_actions_outlined,
-              color: matched ? colors.primary : null,
-            ),
-            title: Text(
-              t(item.hi, item.en),
-              style: matched
-                  ? TextStyle(
-                      decoration: TextDecoration.lineThrough,
-                      color: colors.onSurfaceVariant,
-                    )
-                  : null,
-            ),
-          );
-        }).toList(),
-      ),
+    bool isMatched(({String hi, String en, String category, bool required}) item) {
+      final enWords = item.en.toLowerCase().split(' ');
+      final hiWords = item.hi.split(' ');
+      return scannedLabels.any((l) =>
+          enWords.any((w) => w.length > 3 && l.contains(w)) ||
+          hiWords.any((w) => w.length > 2 && l.contains(w)));
+    }
+
+    final matchedCount = needed.where(isMatched).length;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          t('$matchedCount / ${needed.length} दस्तावेज़ मिलान',
+              '$matchedCount / ${needed.length} documents matched'),
+          style: TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+            color: colors.onSurfaceVariant,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          t('RBD Act 1969 के अनुसार। स्थानीय निकाय अतिरिक्त कागज़ात माँग सकता है।',
+              'Per RBD Act 1969. Local body may ask for additional papers.'),
+          style: TextStyle(fontSize: 11, color: colors.outline),
+        ),
+        const SizedBox(height: 8),
+        Card(
+          child: Column(
+            children: needed.map((item) {
+              final matched = isMatched(item);
+              return ListTile(
+                leading: Icon(
+                  matched ? Icons.check_circle_rounded : Icons.radio_button_unchecked,
+                  color: matched ? colors.primary : colors.outline,
+                  size: 22,
+                ),
+                title: Text(
+                  t(item.hi, item.en),
+                  style: TextStyle(
+                    fontSize: 14,
+                    decoration: matched ? TextDecoration.lineThrough : null,
+                    color: matched ? colors.onSurfaceVariant : colors.onSurface,
+                  ),
+                ),
+                dense: true,
+              );
+            }).toList(),
+          ),
+        ),
+      ],
     );
   }
 }

@@ -106,6 +106,12 @@ class LocalStorage {
     );
   }
 
+  static int get certificateGuideStep =>
+      _prefs.getInt('certificateGuideStep') ?? 0;
+
+  static set certificateGuideStep(int value) =>
+      _prefs.setInt('certificateGuideStep', value);
+
   static Future<void> clearAll() async {
     await _prefs.clear();
   }

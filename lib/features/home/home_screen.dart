@@ -51,6 +51,7 @@ class _HomeScreenState extends State<HomeScreen>
     final scannedDocs = LocalStorage.loadScannedDocs();
     final roadmapDone = LocalStorage.roadmapDoneIds;
     final certReceived = LocalStorage.certificateReceived;
+    final guideStep = LocalStorage.certificateGuideStep;
 
     int idx = 0;
     Widget stagger(Widget child) {
@@ -152,6 +153,7 @@ class _HomeScreenState extends State<HomeScreen>
                 icon: Icons.description_outlined,
                 label: t('प्रमाणपत्र', 'Certificate'),
                 done: certReceived,
+                badge: guideStep > 0 ? '${guideStep + 1}/6' : null,
               ),
               _JourneyStep(
                 icon: Icons.document_scanner_outlined,
